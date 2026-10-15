@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useExpenses } from './hooks/useExpenses.js';
-import { filterByMonth } from './lib/summary.js';
+import { allWithRecurring, monthExpenses as monthRows } from './lib/summary.js';
 import { copyCSV, downloadCSV, toCSV } from './lib/csv.js';
 import { todayISO } from './lib/format.js';
 import ExpenseForm from './components/ExpenseForm.jsx';
@@ -10,24 +10,31 @@ import Summary from './components/Summary.jsx';
 import Charts from './components/Charts.jsx';
 
 export default function App() {
-  const { expenses, add, update, remove } = useExpenses();
+  const { expenses, recurring, add, update, remove, addRecurring, stopRecurring } = useExpenses();
   const [month, setMonth] = useState(() => todayISO().slice(0, 7));
   const [editing, setEditing] = useState(null);
   const [csvText, setCsvText] = useState(null);
   const [copied, setCopied] = useState(false);
 
-  const monthExpenses = filterByMonth(expenses, month);
+  const monthExpenses = monthRows(expenses, recurring, month);
 
-  const handleSubmit = (data) => {
+  const handleSubmit = (data, { recurring: isRecurring } = {}) => {
     if (editing) {
       update(editing.id, data);
       setEditing(null);
+    } else if (isRecurring) {
+      const { amount, category, description, date } = data;
+      addRecurring({ amount, category, description, day: Number(date.slice(8, 10)), startMonth: date.slice(0, 7) });
     } else {
       add(data);
     }
   };
 
   const handleDelete = (expense) => {
+    if (expense.recurring) {
+      stopRecurring(expense.recurringId, month);
+      return;
+    }
     remove(expense.id);
     if (editing?.id === expense.id) setEditing(null);
   };
@@ -65,7 +72,7 @@ export default function App() {
         </section>
 
         <section className="card wide">
-          <Charts monthExpenses={monthExpenses} allExpenses={expenses} month={month} />
+          <Charts monthExpenses={monthExpenses} expenses={expenses} recurring={recurring} month={month} />
         </section>
 
         <section className="card wide">
@@ -81,8 +88,8 @@ export default function App() {
               </button>
               <button
                 className="secondary"
-                disabled={expenses.length === 0}
-                onClick={() => downloadCSV(expenses, 'expenses-all.csv')}
+                disabled={expenses.length === 0 && recurring.length === 0}
+                onClick={() => downloadCSV(allWithRecurring(expenses, recurring, todayISO().slice(0, 7)), 'expenses-all.csv')}
               >
                 ייצוא הכול
               </button>

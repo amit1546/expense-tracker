@@ -35,12 +35,15 @@ export default function ExpenseList({ expenses, onEdit, onDelete }) {
                     {cat.name}
                   </span>
                 </td>
-                <td>{e.description}</td>
+                <td>
+                  {e.description}
+                  {e.recurring && <span className="chip fixed">קבועה</span>}
+                </td>
                 <td className="num">{formatMoney(e.amount)}</td>
                 <td className="row-actions">
                   {confirmId === e.id ? (
                     <span className="confirm">
-                      למחוק?
+                      {e.recurring ? 'להפסיק מחודש זה?' : 'למחוק?'}
                       <button
                         className="link danger"
                         onClick={() => {
@@ -48,7 +51,7 @@ export default function ExpenseList({ expenses, onEdit, onDelete }) {
                           setConfirmId(null);
                         }}
                       >
-                        כן, מחיקה
+                        {e.recurring ? 'כן, הפסקה' : 'כן, מחיקה'}
                       </button>
                       <button className="link" onClick={() => setConfirmId(null)}>
                         ביטול
@@ -56,11 +59,13 @@ export default function ExpenseList({ expenses, onEdit, onDelete }) {
                     </span>
                   ) : (
                     <>
-                      <button className="link" onClick={() => onEdit(e)}>
-                        עריכה
-                      </button>
+                      {!e.recurring && (
+                        <button className="link" onClick={() => onEdit(e)}>
+                          עריכה
+                        </button>
+                      )}
                       <button className="link danger" onClick={() => setConfirmId(e.id)}>
-                        מחיקה
+                        {e.recurring ? 'הפסקה' : 'מחיקה'}
                       </button>
                     </>
                   )}

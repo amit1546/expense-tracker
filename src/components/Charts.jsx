@@ -3,13 +3,13 @@ import { getCategory } from '../lib/categories.js';
 import { formatMoney, formatMonthShort } from '../lib/format.js';
 import { lastMonthsTotals, totalsByCategory } from '../lib/summary.js';
 
-export default function Charts({ monthExpenses, allExpenses, month }) {
+export default function Charts({ monthExpenses, expenses, recurring, month }) {
   const pieData = totalsByCategory(monthExpenses).map((d) => ({
     ...d,
     name: getCategory(d.category).name,
     color: getCategory(d.category).color,
   }));
-  const barData = lastMonthsTotals(allExpenses, month, 6).map((d) => ({
+  const barData = lastMonthsTotals(expenses, recurring, month, 6).map((d) => ({
     ...d,
     label: formatMonthShort(d.month),
   }));
@@ -41,9 +41,9 @@ export default function Charts({ monthExpenses, allExpenses, month }) {
             <XAxis dataKey="label" reversed tick={{ fill: 'var(--muted)' }} />
             <YAxis orientation="right" axisLine={false} tickLine={false} tickMargin={8} tick={{ fill: 'var(--muted)' }} width={60} />
             <Tooltip formatter={(v) => formatMoney(v)} labelFormatter={(l) => l} cursor={{ fill: 'var(--hover)' }} />
-            <Bar dataKey="total" name="סה״כ" fill="var(--g1)" radius={[6, 6, 0, 0]}>
+            <Bar dataKey="total" name="סה״כ" fill="var(--bar)" radius={[6, 6, 0, 0]}>
               {barData.map((d) => (
-                <Cell key={d.month} fill={d.month === month ? 'var(--pop)' : 'var(--g1)'} fillOpacity={d.month === month ? 1 : 0.75} />
+                <Cell key={d.month} fill={d.month === month ? 'var(--pop)' : 'var(--bar)'} />
               ))}
             </Bar>
           </BarChart>

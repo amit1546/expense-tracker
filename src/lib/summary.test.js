@@ -1,5 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { filterByMonth, total, totalsByCategory, shiftMonth, lastMonthsTotals } from './summary.js';
+import {
+  filterByMonth,
+  total,
+  totalsByCategory,
+  shiftMonth,
+  lastMonthsTotals,
+  recurringIn,
+  monthExpenses,
+  allWithRecurring,
+} from './summary.js';
 
 const expenses = [
   { id: '1', amount: 10.1, date: '2026-10-01', category: 'food', description: '' },
@@ -7,6 +16,8 @@ const expenses = [
   { id: '3', amount: 100, date: '2026-10-20', category: 'bills', description: '' },
   { id: '4', amount: 50, date: '2026-09-30', category: 'food', description: '' },
 ];
+
+const gym = { id: 'g', amount: 200, category: 'health', description: 'חדר כושר', day: 31, startMonth: '2026-09' };
 
 describe('summary', () => {
   it('filters by month', () => {
@@ -30,10 +41,39 @@ describe('summary', () => {
   });
 
   it('builds last-N-months series', () => {
-    expect(lastMonthsTotals(expenses, '2026-10', 3)).toEqual([
+    expect(lastMonthsTotals(expenses, [], '2026-10', 3)).toEqual([
       { month: '2026-08', total: 0 },
       { month: '2026-09', total: 50 },
       { month: '2026-10', total: 130.3 },
     ]);
+  });
+});
+
+describe('recurring', () => {
+  it('applies from its start month on, not before', () => {
+    expect(recurringIn([gym], '2026-08')).toEqual([]);
+    expect(recurringIn([gym], '2026-09')).toHaveLength(1);
+    expect(recurringIn([gym], '2027-03')).toHaveLength(1);
+  });
+
+  it('stops after its end month', () => {
+    const ended = { ...gym, endMonth: '2026-10' };
+    expect(recurringIn([ended], '2026-10')).toHaveLength(1);
+    expect(recurringIn([ended], '2026-11')).toEqual([]);
+  });
+
+  it('clamps the day to the length of the month', () => {
+    expect(recurringIn([gym], '2026-09')[0].date).toBe('2026-09-30');
+    expect(recurringIn([gym], '2027-02')[0].date).toBe('2027-02-28');
+  });
+
+  it('adds to monthly totals and the trend series', () => {
+    expect(total(monthExpenses(expenses, [gym], '2026-10'))).toBe(330.3);
+    expect(lastMonthsTotals(expenses, [gym], '2026-10', 3).map((m) => m.total)).toEqual([0, 250, 330.3]);
+  });
+
+  it('expands every month up to a given month for the full export', () => {
+    const all = allWithRecurring([], [gym], '2026-11');
+    expect(all.map((e) => e.date)).toEqual(['2026-09-30', '2026-10-31', '2026-11-30']);
   });
 });

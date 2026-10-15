@@ -7,6 +7,7 @@ export default function ExpenseForm({ initial, onSubmit, onCancel }) {
   const [date, setDate] = useState(initial?.date ?? todayISO());
   const [category, setCategory] = useState(initial?.category ?? CATEGORIES[0].id);
   const [description, setDescription] = useState(initial?.description ?? '');
+  const [isRecurring, setIsRecurring] = useState(false);
   const [error, setError] = useState('');
 
   const handleSubmit = (e) => {
@@ -20,10 +21,14 @@ export default function ExpenseForm({ initial, onSubmit, onCancel }) {
       setError('יש לבחור תאריך');
       return;
     }
-    onSubmit({ amount: Math.round(value * 100) / 100, date, category, description: description.trim() });
+    onSubmit(
+      { amount: Math.round(value * 100) / 100, date, category, description: description.trim() },
+      { recurring: isRecurring },
+    );
     if (!initial) {
       setAmount('');
       setDescription('');
+      setIsRecurring(false);
     }
     setError('');
   };
@@ -65,6 +70,15 @@ export default function ExpenseForm({ initial, onSubmit, onCancel }) {
           placeholder="למשל: קניות בסופר"
         />
       </label>
+      {!initial && (
+        <label className="check">
+          <input type="checkbox" checked={isRecurring} onChange={(e) => setIsRecurring(e.target.checked)} />
+          <span>
+            הוצאה קבועה (חוזרת כל חודש)
+            {isRecurring && <span className="hint">תופיע בכל חודש מהתאריך שנבחר ואילך, באותו יום בחודש.</span>}
+          </span>
+        </label>
+      )}
       {error && <p className="error">{error}</p>}
       <div className="actions">
         <button type="submit">{initial ? 'שמירה' : 'הוספה'}</button>
