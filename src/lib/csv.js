@@ -13,6 +13,16 @@ export function toCSV(expenses) {
   return [header, ...rows].map((r) => r.map(escapeCell).join(',')).join('\r\n');
 }
 
+// Resolves true when the text reached the clipboard, false when the browser refused.
+export async function copyCSV(expenses) {
+  try {
+    await navigator.clipboard.writeText(toCSV(expenses));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function downloadCSV(expenses, filename) {
   // BOM so Excel opens Hebrew text as UTF-8
   const blob = new Blob(['﻿' + toCSV(expenses)], { type: 'text/csv;charset=utf-8' });

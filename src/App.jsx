@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useExpenses } from './hooks/useExpenses.js';
 import { filterByMonth } from './lib/summary.js';
-import { downloadCSV } from './lib/csv.js';
+import { copyCSV, downloadCSV, toCSV } from './lib/csv.js';
 import { todayISO } from './lib/format.js';
 import ExpenseForm from './components/ExpenseForm.jsx';
 import ExpenseList from './components/ExpenseList.jsx';
@@ -13,6 +13,8 @@ export default function App() {
   const { expenses, add, update, remove } = useExpenses();
   const [month, setMonth] = useState(() => todayISO().slice(0, 7));
   const [editing, setEditing] = useState(null);
+  const [csvText, setCsvText] = useState(null);
+  const [copied, setCopied] = useState(false);
 
   const monthExpenses = filterByMonth(expenses, month);
 
@@ -26,9 +28,17 @@ export default function App() {
   };
 
   const handleDelete = (expense) => {
-    if (window.confirm(`למחוק את ההוצאה "${expense.description || 'ללא תיאור'}"?`)) {
-      remove(expense.id);
-      if (editing?.id === expense.id) setEditing(null);
+    remove(expense.id);
+    if (editing?.id === expense.id) setEditing(null);
+  };
+
+  const handleCopy = async () => {
+    if (await copyCSV(monthExpenses)) {
+      setCsvText(null);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } else {
+      setCsvText(toCSV(monthExpenses));
     }
   };
 
@@ -76,8 +86,17 @@ export default function App() {
               >
                 ייצוא הכול
               </button>
+              <button className="secondary" disabled={monthExpenses.length === 0} onClick={handleCopy}>
+                {copied ? 'הועתק ✓' : 'העתקת CSV'}
+              </button>
             </div>
           </div>
+          {csvText && (
+            <div className="csv-box">
+              <span className="muted">לא ניתן להעתיק אוטומטית. סמן את הטקסט והעתק אותו:</span>
+              <textarea readOnly value={csvText} onFocus={(e) => e.target.select()} />
+            </div>
+          )}
           <ExpenseList expenses={monthExpenses} onEdit={setEditing} onDelete={handleDelete} />
         </section>
       </main>
