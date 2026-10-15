@@ -39,9 +39,13 @@ export default function Charts({ monthExpenses, allExpenses, month }) {
           {/* reversed so the newest month is on the left, matching RTL reading order */}
           <BarChart data={barData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
             <XAxis dataKey="label" reversed tick={{ fill: 'var(--muted)' }} />
-            <YAxis orientation="right" tick={{ fill: 'var(--muted)' }} width={60} />
+            <YAxis orientation="right" axisLine={false} tickLine={false} tickMargin={8} tick={{ fill: 'var(--muted)' }} width={60} />
             <Tooltip formatter={(v) => formatMoney(v)} labelFormatter={(l) => l} cursor={{ fill: 'var(--hover)' }} />
-            <Bar dataKey="total" name="סה״כ" fill="var(--accent)" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="total" name="סה״כ" fill="var(--g1)" radius={[6, 6, 0, 0]}>
+              {barData.map((d) => (
+                <Cell key={d.month} fill={d.month === month ? 'var(--pop)' : 'var(--g1)'} fillOpacity={d.month === month ? 1 : 0.75} />
+              ))}
+            </Bar>
           </BarChart>
         </ResponsiveContainer>
       </div>

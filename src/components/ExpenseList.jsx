@@ -30,8 +30,10 @@ export default function ExpenseList({ expenses, onEdit, onDelete }) {
               <tr key={e.id}>
                 <td>{formatDate(e.date)}</td>
                 <td>
-                  <span className="dot" style={{ background: cat.color }} />
-                  {cat.name}
+                  <span className="chip" style={{ '--chip': cat.color }}>
+                    <span className="dot" />
+                    {cat.name}
+                  </span>
                 </td>
                 <td>{e.description}</td>
                 <td className="num">{formatMoney(e.amount)}</td>

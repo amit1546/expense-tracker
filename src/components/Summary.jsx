@@ -17,13 +17,18 @@ export default function Summary({ expenses }) {
           const pct = sum ? Math.round((catTotal / sum) * 100) : 0;
           return (
             <li key={category}>
-              <span>
-                <span className="dot" style={{ background: cat.color }} />
-                {cat.name}
-              </span>
-              <span className="num">
-                {formatMoney(catTotal)} <span className="muted">({pct}%)</span>
-              </span>
+              <div className="line">
+                <span className="chip" style={{ '--chip': cat.color }}>
+                  <span className="dot" />
+                  {cat.name}
+                </span>
+                <span className="num">
+                  {formatMoney(catTotal)} <span className="muted">({pct}%)</span>
+                </span>
+              </div>
+              <div className="bar" aria-hidden="true">
+                <span style={{ width: `${pct}%`, background: cat.color }} />
+              </div>
             </li>
           );
         })}
