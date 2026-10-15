@@ -1,23 +1,50 @@
 import { getCategory } from '../lib/categories.js';
-import { formatMoney } from '../lib/format.js';
+import { formatMoney, formatMonth } from '../lib/format.js';
 import { total, totalsByCategory } from '../lib/summary.js';
 
-export default function Summary({ expenses }) {
-  const sum = total(expenses);
-  const byCategory = totalsByCategory(expenses);
-  const fixed = total(expenses.filter((e) => e.recurring));
+const TITLES = { 1: 'סיכום חודשי', 6: 'סיכום ל-6 חודשים', 12: 'סיכום שנתי' };
+const PREVIOUS = { 1: 'החודש הקודם', 6: '6 החודשים הקודמים', 12: 'השנה הקודמת' };
+
+// rows: every expense in the period; series: one entry per month of the period; prevTotal: the period before it
+export default function Summary({ rows, count, series, prevTotal }) {
+  const sum = total(rows);
+  const byCategory = totalsByCategory(rows);
+  const fixed = total(rows.filter((e) => e.recurring));
+  const pct = prevTotal > 0 ? Math.round(((sum - prevTotal) / prevTotal) * 100) : null;
+  const busiest = series.reduce((a, b) => (b.total > a.total ? b : a), series[0]);
 
   return (
     <div className="summary">
-      <h2>סיכום חודשי</h2>
+      <h2>{TITLES[count]}</h2>
       <p className="total">{formatMoney(sum)}</p>
       <p className="muted">
-        {expenses.length} הוצאות{fixed > 0 && ` · מתוכן קבועות ${formatMoney(fixed)}`}
+        {rows.length} הוצאות{fixed > 0 && ` · מתוכן קבועות ${formatMoney(fixed)}`}
       </p>
+      {pct !== null && pct !== 0 && (
+        <p className={`delta ${pct > 0 ? 'up' : 'down'}`}>
+          {pct > 0 ? '▲' : '▼'} {Math.abs(pct)}% לעומת {PREVIOUS[count]}
+        </p>
+      )}
+      {count > 1 && (
+        <dl className="stats">
+          <div>
+            <dt>ממוצע חודשי</dt>
+            <dd className="num">{formatMoney(Math.round((sum / count) * 100) / 100)}</dd>
+          </div>
+          {busiest.total > 0 && (
+            <div>
+              <dt>החודש היקר ביותר</dt>
+              <dd>
+                {formatMonth(busiest.month)} <span className="num muted">({formatMoney(busiest.total)})</span>
+              </dd>
+            </div>
+          )}
+        </dl>
+      )}
       <ul className="category-list">
         {byCategory.map(({ category, total: catTotal }) => {
           const cat = getCategory(category);
-          const pct = sum ? Math.round((catTotal / sum) * 100) : 0;
+          const share = sum ? Math.round((catTotal / sum) * 100) : 0;
           return (
             <li key={category}>
               <div className="line">
@@ -26,11 +53,11 @@ export default function Summary({ expenses }) {
                   {cat.name}
                 </span>
                 <span className="num">
-                  {formatMoney(catTotal)} <span className="muted">({pct}%)</span>
+                  {formatMoney(catTotal)} <span className="muted">({share}%)</span>
                 </span>
               </div>
               <div className="bar" aria-hidden="true">
-                <span style={{ width: `${pct}%`, background: cat.color }} />
+                <span style={{ width: `${share}%`, background: cat.color }} />
               </div>
             </li>
           );

@@ -64,9 +64,26 @@ export function allWithRecurring(expenses, recurring, uptoMonth) {
   return out;
 }
 
-// Totals for the `count` months ending at (and including) `endMonth`, oldest first.
-export function lastMonthsTotals(expenses, recurring, endMonth, count = 6) {
+// The `count` months ending at (and including) `endMonth`, oldest first.
+export function rangeMonths(endMonth, count) {
   const months = [];
   for (let i = count - 1; i >= 0; i--) months.push(shiftMonth(endMonth, -i));
-  return months.map((month) => ({ month, total: total(monthExpenses(expenses, recurring, month)) }));
+  return months;
+}
+
+export function periodExpenses(expenses, recurring, endMonth, count) {
+  return rangeMonths(endMonth, count).flatMap((m) => monthExpenses(expenses, recurring, m));
+}
+
+const round2 = (n) => Math.round(n * 100) / 100;
+
+// One row per month: { month, total, [categoryId]: amount, ... } – ready for a stacked chart.
+export function monthlySeries(expenses, recurring, endMonth, count) {
+  return rangeMonths(endMonth, count).map((month) => {
+    const rows = monthExpenses(expenses, recurring, month);
+    const byCategory = {};
+    for (const r of rows) byCategory[r.category] = (byCategory[r.category] ?? 0) + r.amount;
+    for (const k of Object.keys(byCategory)) byCategory[k] = round2(byCategory[k]);
+    return { month, total: total(rows), ...byCategory };
+  });
 }

@@ -1,22 +1,43 @@
 import { useState } from 'react';
 import { useExpenses } from './hooks/useExpenses.js';
-import { allWithRecurring, monthExpenses as monthRows } from './lib/summary.js';
+import { allWithRecurring, monthlySeries, periodExpenses, rangeMonths, shiftMonth } from './lib/summary.js';
 import { copyCSV, downloadCSV, toCSV } from './lib/csv.js';
 import { todayISO } from './lib/format.js';
 import ExpenseForm from './components/ExpenseForm.jsx';
 import ExpenseList from './components/ExpenseList.jsx';
-import MonthPicker from './components/MonthPicker.jsx';
+import PeriodControls from './components/PeriodControls.jsx';
+import CategoryFilter from './components/CategoryFilter.jsx';
 import Summary from './components/Summary.jsx';
 import Charts from './components/Charts.jsx';
 
+const LIST_TITLES = { 1: 'הוצאות החודש', 6: 'הוצאות ב-6 החודשים', 12: 'הוצאות השנה' };
+
 export default function App() {
   const { expenses, recurring, add, update, remove, addRecurring, stopRecurring } = useExpenses();
-  const [month, setMonth] = useState(() => todayISO().slice(0, 7));
+  const [month, setMonth] = useState(() => todayISO().slice(0, 7)); // last month of the period
+  const [count, setCount] = useState(1); // months in the period: 1, 6 or 12
+  const [categories, setCategories] = useState([]); // empty = all categories
   const [editing, setEditing] = useState(null);
   const [csvText, setCsvText] = useState(null);
   const [copied, setCopied] = useState(false);
 
-  const monthExpenses = monthRows(expenses, recurring, month);
+  const keep = (e) => categories.length === 0 || categories.includes(e.category);
+  const shownExpenses = expenses.filter(keep);
+  const shownRecurring = recurring.filter(keep);
+
+  const rows = periodExpenses(shownExpenses, shownRecurring, month, count);
+  const prevRows = periodExpenses(shownExpenses, shownRecurring, shiftMonth(month, -count), count);
+  const series = monthlySeries(shownExpenses, shownRecurring, month, count);
+  const trend = count === 1 ? monthlySeries(shownExpenses, shownRecurring, month, 6) : series;
+  const prevTotal = prevRows.reduce((sum, e) => sum + e.amount, 0);
+
+  const toggleCategory = (id) =>
+    setCategories((list) => (list.includes(id) ? list.filter((c) => c !== id) : [...list, id]));
+
+  const pickMonth = (m) => {
+    setMonth(m);
+    setCount(1);
+  };
 
   const handleSubmit = (data, { recurring: isRecurring } = {}) => {
     if (editing) {
@@ -32,7 +53,7 @@ export default function App() {
 
   const handleDelete = (expense) => {
     if (expense.recurring) {
-      stopRecurring(expense.recurringId, month);
+      stopRecurring(expense.recurringId, expense.date.slice(0, 7));
       return;
     }
     remove(expense.id);
@@ -40,21 +61,25 @@ export default function App() {
   };
 
   const handleCopy = async () => {
-    if (await copyCSV(monthExpenses)) {
+    if (await copyCSV(rows)) {
       setCsvText(null);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } else {
-      setCsvText(toCSV(monthExpenses));
+      setCsvText(toCSV(rows));
     }
   };
+
+  const periodLabel = month + (count > 1 ? `_${rangeMonths(month, count)[0]}` : '');
 
   return (
     <div className="app">
       <header className="app-header">
         <h1>מעקב הוצאות</h1>
-        <MonthPicker month={month} onChange={setMonth} />
+        <PeriodControls month={month} count={count} onMonth={setMonth} onCount={setCount} />
       </header>
+
+      <CategoryFilter selected={categories} onToggle={toggleCategory} onClear={() => setCategories([])} />
 
       <main className="layout">
         <section className="card">
@@ -68,32 +93,41 @@ export default function App() {
         </section>
 
         <section className="card">
-          <Summary expenses={monthExpenses} />
+          <Summary rows={rows} count={count} series={series} prevTotal={prevTotal} />
         </section>
 
         <section className="card wide">
-          <Charts monthExpenses={monthExpenses} expenses={expenses} recurring={recurring} month={month} />
+          <Charts
+            rows={rows}
+            trend={trend}
+            inRange={rangeMonths(month, count)}
+            count={count}
+            onPickMonth={pickMonth}
+            onToggleCategory={toggleCategory}
+          />
         </section>
 
         <section className="card wide">
           <div className="list-header">
-            <h2>הוצאות החודש</h2>
+            <h2>{LIST_TITLES[count]}</h2>
             <div className="actions">
               <button
                 className="secondary"
-                disabled={monthExpenses.length === 0}
-                onClick={() => downloadCSV(monthExpenses, `expenses-${month}.csv`)}
+                disabled={rows.length === 0}
+                onClick={() => downloadCSV(rows, `expenses-${periodLabel}.csv`)}
               >
-                ייצוא החודש ל-CSV
+                ייצוא התקופה ל-CSV
               </button>
               <button
                 className="secondary"
                 disabled={expenses.length === 0 && recurring.length === 0}
-                onClick={() => downloadCSV(allWithRecurring(expenses, recurring, todayISO().slice(0, 7)), 'expenses-all.csv')}
+                onClick={() =>
+                  downloadCSV(allWithRecurring(expenses, recurring, todayISO().slice(0, 7)), 'expenses-all.csv')
+                }
               >
                 ייצוא הכול
               </button>
-              <button className="secondary" disabled={monthExpenses.length === 0} onClick={handleCopy}>
+              <button className="secondary" disabled={rows.length === 0} onClick={handleCopy}>
                 {copied ? 'הועתק ✓' : 'העתקת CSV'}
               </button>
             </div>
@@ -104,7 +138,7 @@ export default function App() {
               <textarea readOnly value={csvText} onFocus={(e) => e.target.select()} />
             </div>
           )}
-          <ExpenseList expenses={monthExpenses} onEdit={setEditing} onDelete={handleDelete} />
+          <ExpenseList expenses={rows} onEdit={setEditing} onDelete={handleDelete} />
         </section>
       </main>
     </div>

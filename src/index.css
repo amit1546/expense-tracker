@@ -17,6 +17,7 @@
   --tb: #1f7a70;
   --heading: #1e3a5f;
   --bg-glow: #dbe3ec;
+  --good: #2f855a;
   color-scheme: light;
 }
 
@@ -40,6 +41,7 @@
     --tb: #5fd0b8;
     --heading: #9cc3e6;
     --bg-glow: #13222f;
+  --good: #5fd0a0;
     color-scheme: dark;
   }
 }
@@ -63,6 +65,7 @@
   --tb: #5fd0b8;
   --heading: #9cc3e6;
   --bg-glow: #13222f;
+  --good: #5fd0a0;
   color-scheme: dark;
 }
 
@@ -227,7 +230,7 @@ select {
 }
 
 .month-label {
-  min-width: 130px;
+  min-width: 110px;
   text-align: center;
   font-weight: 600;
 }
@@ -337,7 +340,8 @@ select {
 }
 
 .table-wrap {
-  overflow-x: auto;
+  overflow: auto;
+  max-height: 560px;
 }
 
 .expense-table {
@@ -357,6 +361,9 @@ select {
 }
 
 .expense-table th {
+  position: sticky;
+  top: 0;
+  background: var(--card);
   color: var(--muted);
   font-weight: 500;
   font-size: 0.9rem;
@@ -427,4 +434,111 @@ select {
   margin-inline-start: 8px;
   padding: 0 8px;
   font-size: 0.8rem;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.seg {
+  display: flex;
+  gap: 4px;
+}
+
+.app-header .secondary[aria-pressed='true'],
+.app-header .secondary[aria-pressed='true']:hover:not(:disabled) {
+  background: #fff;
+  color: #14304f;
+  border-color: #fff;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.filters button.chip {
+  color: var(--text);
+  font-size: 0.9rem;
+  padding: 3px 12px;
+  background: color-mix(in srgb, var(--chip) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--chip) 55%, transparent);
+}
+
+.filters button.chip[aria-pressed='true'] {
+  background: color-mix(in srgb, var(--chip) 50%, transparent);
+  box-shadow: 0 0 0 2px var(--chip);
+  font-weight: 600;
+}
+
+.delta {
+  margin: 4px 0 0;
+  font-weight: 600;
+}
+
+.delta.up {
+  color: var(--danger);
+}
+
+.delta.down {
+  color: var(--good);
+}
+
+.stats {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0 0;
+}
+
+.stats div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.stats dt {
+  color: var(--muted);
+}
+
+.stats dd {
+  margin: 0;
+}
+
+.center {
+  text-align: center;
+  margin: 4px 0 0;
+}
+
+.recharts-bar-rectangle,
+.recharts-pie-sector {
+  cursor: pointer;
+}
+
+.tip {
+  background: var(--card);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  display: grid;
+  gap: 4px;
+  min-width: 170px;
+}
+
+.tip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tip-total {
+  border-top: 1px solid var(--border);
+  padding-top: 4px;
+  font-weight: 600;
 }

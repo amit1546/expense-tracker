@@ -6,7 +6,7 @@ export default function ExpenseList({ expenses, onEdit, onDelete }) {
   const [confirmId, setConfirmId] = useState(null);
 
   if (expenses.length === 0) {
-    return <p className="empty">אין הוצאות בחודש הזה עדיין.</p>;
+    return <p className="empty">אין הוצאות בתקופה הזו.</p>;
   }
 
   const sorted = [...expenses].sort((a, b) => b.date.localeCompare(a.date));
