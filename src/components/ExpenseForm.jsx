@@ -70,23 +70,27 @@ export default function ExpenseForm({ initial, onSubmit, onCancel }) {
           placeholder="למשל: קניות בסופר"
         />
       </label>
-      {!initial && (
-        <label className="check">
-          <input type="checkbox" checked={isRecurring} onChange={(e) => setIsRecurring(e.target.checked)} />
-          <span>
-            הוצאה קבועה (חוזרת כל חודש)
-            {isRecurring && <span className="hint">תופיע בכל חודש מהתאריך שנבחר ואילך, באותו יום בחודש.</span>}
-          </span>
-        </label>
-      )}
       {error && <p className="error">{error}</p>}
-      <div className="actions">
-        <button type="submit">{initial ? 'שמירה' : 'הוספה'}</button>
-        {onCancel && (
-          <button type="button" className="secondary" onClick={onCancel}>
-            ביטול
-          </button>
+      <div className="form-foot">
+        {!initial ? (
+          <label className="check">
+            <input type="checkbox" checked={isRecurring} onChange={(e) => setIsRecurring(e.target.checked)} />
+            <span>
+              הוצאה קבועה (חוזרת כל חודש)
+              {isRecurring && <span className="hint">תופיע בכל חודש מהתאריך שנבחר ואילך, באותו יום בחודש.</span>}
+            </span>
+          </label>
+        ) : (
+          <span />
         )}
+        <div className="actions">
+          <button type="submit">{initial ? 'שמירה' : 'הוספה'}</button>
+          {onCancel && (
+            <button type="button" className="secondary" onClick={onCancel}>
+              ביטול
+            </button>
+          )}
+        </div>
       </div>
     </form>
   );

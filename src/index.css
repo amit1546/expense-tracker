@@ -542,3 +542,44 @@ select {
   padding-top: 4px;
   font-weight: 600;
 }
+
+.form-card {
+  margin-bottom: 16px;
+}
+
+.form-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.summary-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  gap: 8px 32px;
+  align-items: start;
+}
+
+.summary-body .category-list {
+  margin-top: 0;
+}
+
+@media (max-width: 720px) {
+  .summary-body {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 721px) {
+  .expense-form {
+    grid-template-columns: 1fr 1fr 1.2fr 2fr;
+    align-items: end;
+  }
+
+  .expense-form > .error,
+  .expense-form > .form-foot {
+    grid-column: 1 / -1;
+  }
+}

@@ -16,53 +16,57 @@ export default function Summary({ rows, count, series, prevTotal }) {
   return (
     <div className="summary">
       <h2>{TITLES[count]}</h2>
-      <p className="total">{formatMoney(sum)}</p>
-      <p className="muted">
-        {rows.length} הוצאות{fixed > 0 && ` · מתוכן קבועות ${formatMoney(fixed)}`}
-      </p>
-      {pct !== null && pct !== 0 && (
-        <p className={`delta ${pct > 0 ? 'up' : 'down'}`}>
-          {pct > 0 ? '▲' : '▼'} {Math.abs(pct)}% לעומת {PREVIOUS[count]}
-        </p>
-      )}
-      {count > 1 && (
-        <dl className="stats">
-          <div>
-            <dt>ממוצע חודשי</dt>
-            <dd className="num">{formatMoney(Math.round((sum / count) * 100) / 100)}</dd>
-          </div>
-          {busiest.total > 0 && (
-            <div>
-              <dt>החודש היקר ביותר</dt>
-              <dd>
-                {formatMonth(busiest.month)} <span className="num muted">({formatMoney(busiest.total)})</span>
-              </dd>
-            </div>
+      <div className="summary-body">
+        <div>
+          <p className="total">{formatMoney(sum)}</p>
+          <p className="muted">
+            {rows.length} הוצאות{fixed > 0 && ` · מתוכן קבועות ${formatMoney(fixed)}`}
+          </p>
+          {pct !== null && pct !== 0 && (
+            <p className={`delta ${pct > 0 ? 'up' : 'down'}`}>
+              {pct > 0 ? '▲' : '▼'} {Math.abs(pct)}% לעומת {PREVIOUS[count]}
+            </p>
           )}
-        </dl>
-      )}
-      <ul className="category-list">
-        {byCategory.map(({ category, total: catTotal }) => {
-          const cat = getCategory(category);
-          const share = sum ? Math.round((catTotal / sum) * 100) : 0;
-          return (
-            <li key={category}>
-              <div className="line">
-                <span className="chip" style={{ '--chip': cat.color }}>
-                  <span className="dot" />
-                  {cat.name}
-                </span>
-                <span className="num">
-                  {formatMoney(catTotal)} <span className="muted">({share}%)</span>
-                </span>
+          {count > 1 && (
+            <dl className="stats">
+              <div>
+                <dt>ממוצע חודשי</dt>
+                <dd className="num">{formatMoney(Math.round((sum / count) * 100) / 100)}</dd>
               </div>
-              <div className="bar" aria-hidden="true">
-                <span style={{ width: `${share}%`, background: cat.color }} />
-              </div>
-            </li>
-          );
-        })}
-      </ul>
+              {busiest.total > 0 && (
+                <div>
+                  <dt>החודש היקר ביותר</dt>
+                  <dd>
+                    {formatMonth(busiest.month)} <span className="num muted">({formatMoney(busiest.total)})</span>
+                  </dd>
+                </div>
+              )}
+            </dl>
+          )}
+        </div>
+        <ul className="category-list">
+          {byCategory.map(({ category, total: catTotal }) => {
+            const cat = getCategory(category);
+            const share = sum ? Math.round((catTotal / sum) * 100) : 0;
+            return (
+              <li key={category}>
+                <div className="line">
+                  <span className="chip" style={{ '--chip': cat.color }}>
+                    <span className="dot" />
+                    {cat.name}
+                  </span>
+                  <span className="num">
+                    {formatMoney(catTotal)} <span className="muted">({share}%)</span>
+                  </span>
+                </div>
+                <div className="bar" aria-hidden="true">
+                  <span style={{ width: `${share}%`, background: cat.color }} />
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
     </div>
   );
 }

@@ -39,6 +39,11 @@ export default function App() {
     setCount(1);
   };
 
+  const startEdit = (expense) => {
+    setEditing(expense);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const handleSubmit = (data, { recurring: isRecurring } = {}) => {
     if (editing) {
       update(editing.id, data);
@@ -79,20 +84,20 @@ export default function App() {
         <PeriodControls month={month} count={count} onMonth={setMonth} onCount={setCount} />
       </header>
 
+      <section className="card form-card">
+        <h2>{editing ? 'עריכת הוצאה' : 'הוספת הוצאה'}</h2>
+        <ExpenseForm
+          key={editing?.id ?? 'new'}
+          initial={editing}
+          onSubmit={handleSubmit}
+          onCancel={editing ? () => setEditing(null) : undefined}
+        />
+      </section>
+
       <CategoryFilter selected={categories} onToggle={toggleCategory} onClear={() => setCategories([])} />
 
       <main className="layout">
-        <section className="card">
-          <h2>{editing ? 'עריכת הוצאה' : 'הוספת הוצאה'}</h2>
-          <ExpenseForm
-            key={editing?.id ?? 'new'}
-            initial={editing}
-            onSubmit={handleSubmit}
-            onCancel={editing ? () => setEditing(null) : undefined}
-          />
-        </section>
-
-        <section className="card">
+        <section className="card wide">
           <Summary rows={rows} count={count} series={series} prevTotal={prevTotal} />
         </section>
 
@@ -138,7 +143,7 @@ export default function App() {
               <textarea readOnly value={csvText} onFocus={(e) => e.target.select()} />
             </div>
           )}
-          <ExpenseList expenses={rows} onEdit={setEditing} onDelete={handleDelete} />
+          <ExpenseList expenses={rows} onEdit={startEdit} onDelete={handleDelete} />
         </section>
       </main>
     </div>
