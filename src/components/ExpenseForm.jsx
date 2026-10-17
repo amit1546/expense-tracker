@@ -56,6 +56,16 @@ export default function ExpenseForm({ initial, onSubmit, onCancel }) {
         <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
       </label>
       <label>
+        קטגוריה
+        <select value={category} onChange={(e) => setCategory(e.target.value)}>
+          {CATEGORIES.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
         תיאור
         <input
           type="text"
@@ -64,22 +74,6 @@ export default function ExpenseForm({ initial, onSubmit, onCancel }) {
           placeholder="למשל: קניות בסופר"
         />
       </label>
-      <fieldset className="cat-picker">
-        <legend>קטגוריה</legend>
-        {CATEGORIES.map((c) => (
-          <button
-            key={c.id}
-            type="button"
-            className="cat-btn"
-            style={{ '--chip': c.color }}
-            aria-pressed={category === c.id}
-            onClick={() => setCategory(c.id)}
-          >
-            <span className="dot" />
-            {c.name}
-          </button>
-        ))}
-      </fieldset>
       {error && (
         <p className="error" role="alert">
           {error}
@@ -89,10 +83,7 @@ export default function ExpenseForm({ initial, onSubmit, onCancel }) {
         {!initial ? (
           <label className="check">
             <input type="checkbox" checked={isRecurring} onChange={(e) => setIsRecurring(e.target.checked)} />
-            <span>
-              הוצאה קבועה (חוזרת כל חודש)
-              {isRecurring && <span className="hint">תופיע בכל חודש מהתאריך שנבחר ואילך, באותו יום בחודש.</span>}
-            </span>
+            <span>הוצאה קבועה (חוזרת כל חודש)</span>
           </label>
         ) : (
           <span />

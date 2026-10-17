@@ -16,10 +16,7 @@ import { compactMoney, formatDate, formatMoney, formatMonth, formatMonthName } f
 import { total, totalsByCategory } from '../lib/summary.js';
 
 // A single month is drawn day by day; 6 months and a year are drawn month by month.
-const COPY = {
-  days: { title: 'הוצאות לפי יום', sub: 'כל עמודה היא יום בחודש. לחיצה או ריחוף מציגים את הפירוט.' },
-  months: { title: 'הוצאות לפי חודש', sub: 'לחיצה על עמודה פותחת את החודש הזה.' },
-};
+const TITLES = { days: 'הוצאות לפי יום', months: 'הוצאות לפי חודש' };
 
 function AxisTick({ x, y, payload, mode, inRange }) {
   if (mode === 'days') {
@@ -71,22 +68,6 @@ function BarTooltip({ active, payload, mode }) {
   );
 }
 
-function PieTooltip({ active, payload }) {
-  if (!active || !payload?.length) return null;
-  const d = payload[0];
-  return (
-    <div className="tip">
-      <div className="tip-row">
-        <span>
-          <span className="dot" style={{ background: d.payload.color }} />
-          {d.name}
-        </span>
-        <span className="num">{formatMoney(d.value)}</span>
-      </div>
-    </div>
-  );
-}
-
 // rows: expenses of the period; trend: series to stack by category (days of the month, or months);
 // inRange: months inside the period (month mode only)
 export default function Charts({ rows, trend, inRange, count, onPickMonth, onToggleCategory }) {
@@ -105,7 +86,6 @@ export default function Charts({ rows, trend, inRange, count, onPickMonth, onTog
     <div className="charts">
       <div className="chart">
         <h3>לאן הלך הכסף</h3>
-        <p className="sub">לחיצה על קטגוריה מסננת את המסך אליה.</p>
         {pieData.length === 0 ? (
           <p className="empty">אין נתונים להצגה</p>
         ) : (
@@ -127,7 +107,6 @@ export default function Charts({ rows, trend, inRange, count, onPickMonth, onTog
                       <Cell key={d.category} fill={d.color} />
                     ))}
                   </Pie>
-                  <Tooltip content={<PieTooltip />} />
                 </PieChart>
               </ResponsiveContainer>
               <div className="donut-center">
@@ -154,8 +133,7 @@ export default function Charts({ rows, trend, inRange, count, onPickMonth, onTog
         )}
       </div>
       <div className={`chart ${mode}`}>
-        <h3>{COPY[mode].title}</h3>
-        <p className="sub">{COPY[mode].sub}</p>
+        <h3>{TITLES[mode]}</h3>
         <ResponsiveContainer width="100%" height={290}>
           {/* reversed so the newest bar is on the left, matching RTL reading order */}
           <ComposedChart data={trend} margin={{ top: 22, right: 8, left: 8, bottom: 0 }}>
