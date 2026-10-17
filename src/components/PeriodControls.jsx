@@ -16,11 +16,7 @@ export default function PeriodControls({ month, count, onMonth, onCount }) {
     <div className="controls">
       <div className="seg" role="group" aria-label="תקופה">
         {PERIODS.map((p) => (
-          <button
-            key={p.count}
-            aria-pressed={p.count === count}
-            onClick={() => onCount(p.count)}
-          >
+          <button key={p.count} aria-pressed={p.count === count} onClick={() => onCount(p.count)}>
             {p.label}
           </button>
         ))}

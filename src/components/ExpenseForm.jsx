@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { CATEGORIES } from '../lib/categories.js';
-import { todayISO } from '../lib/format.js';
+import { parseAmount, todayISO } from '../lib/format.js';
 
 export default function ExpenseForm({ initial, onSubmit, onCancel }) {
   const [amount, setAmount] = useState(initial ? String(initial.amount) : '');
@@ -13,8 +13,7 @@ export default function ExpenseForm({ initial, onSubmit, onCancel }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // accept "12,5", "₪ 12.50" and the like
-    const value = Number(amount.replace(/[^\d.,]/g, '').replace(',', '.'));
+    const value = parseAmount(amount);
     if (!Number.isFinite(value) || value <= 0) {
       setError('יש להזין סכום חיובי, למשל 45 או 12.50');
       amountRef.current?.focus();

@@ -1,15 +1,10 @@
-import { useState } from 'react';
 import { getCategory } from '../lib/categories.js';
 import { formatDate, formatMoney } from '../lib/format.js';
 
-export default function ExpenseList({ expenses, highlightId, onEdit, onDelete }) {
-  const [confirmId, setConfirmId] = useState(null);
-
+export default function ExpenseList({ expenses, highlightId, emptyText, onEdit, onDelete }) {
   if (expenses.length === 0) {
-    return <p className="empty">אין הוצאות בתקופה הזו.</p>;
+    return <p className="empty">{emptyText}</p>;
   }
-
-  const sorted = [...expenses].sort((a, b) => b.date.localeCompare(a.date));
 
   return (
     <div className="table-wrap">
@@ -24,7 +19,7 @@ export default function ExpenseList({ expenses, highlightId, onEdit, onDelete })
           </tr>
         </thead>
         <tbody>
-          {sorted.map((e) => {
+          {expenses.map((e) => {
             const cat = getCategory(e.category);
             return (
               <tr key={e.id} className={e.id === highlightId ? 'flash' : undefined}>
@@ -41,34 +36,12 @@ export default function ExpenseList({ expenses, highlightId, onEdit, onDelete })
                 </td>
                 <td className="num">{formatMoney(e.amount)}</td>
                 <td className="row-actions">
-                  {confirmId === e.id ? (
-                    <span className="confirm">
-                      {e.recurring ? 'להפסיק מחודש זה?' : 'למחוק?'}
-                      <button
-                        className="link danger"
-                        onClick={() => {
-                          onDelete(e);
-                          setConfirmId(null);
-                        }}
-                      >
-                        {e.recurring ? 'כן, הפסקה' : 'כן, מחיקה'}
-                      </button>
-                      <button className="link" onClick={() => setConfirmId(null)}>
-                        ביטול
-                      </button>
-                    </span>
-                  ) : (
-                    <>
-                      {!e.recurring && (
-                        <button className="link" onClick={() => onEdit(e)}>
-                          עריכה
-                        </button>
-                      )}
-                      <button className="link danger" onClick={() => setConfirmId(e.id)}>
-                        {e.recurring ? 'הפסקה' : 'מחיקה'}
-                      </button>
-                    </>
-                  )}
+                  <button className="link" onClick={() => onEdit(e)}>
+                    עריכה
+                  </button>
+                  <button className="link danger" onClick={() => onDelete(e)}>
+                    {e.recurring ? 'הפסקה' : 'מחיקה'}
+                  </button>
                 </td>
               </tr>
             );

@@ -757,3 +757,159 @@ button.legend-item:hover {
   border-radius: 8px;
   background: var(--hover);
 }
+
+/* list controls, budgets, backup */
+.list-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.list-header h2 {
+  margin: 0;
+}
+
+.list-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.list-controls input {
+  flex: 1 1 200px;
+  width: auto;
+  min-width: 0;
+}
+
+.list-controls select {
+  flex: 0 1 200px;
+  width: auto;
+}
+
+.summary-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.summary-head h2 {
+  margin-bottom: 12px;
+}
+
+.bar > span.ok {
+  background: var(--good);
+}
+
+.bar > span.warn {
+  background: var(--pop);
+}
+
+.bar > span.over {
+  background: var(--danger);
+}
+
+.over-text {
+  color: var(--danger);
+}
+
+.budget {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.budget .line {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.budget .bar {
+  height: 10px;
+}
+
+.budget-left {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.budget-left.ok {
+  color: var(--good);
+}
+
+.budget-left.warn {
+  color: var(--pop);
+}
+
+.budget-left.over {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.budget-editor {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.budget-editor label {
+  display: grid;
+  gap: 4px;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.budget-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.budget-grid .dot {
+  margin-inline-end: 6px;
+}
+
+.backup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.backup h2 {
+  margin: 0;
+}
+
+.backup .confirm-row,
+.backup .error {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+.confirm-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+}
+
+.toast button.link {
+  color: #fff;
+  font-weight: 700;
+  text-decoration: underline;
+  margin-inline-start: 14px;
+  padding: 0;
+}

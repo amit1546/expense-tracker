@@ -82,7 +82,6 @@ describe('recurring', () => {
     expect(total(monthExpenses(expenses, [gym], '2026-10'))).toBe(330.3);
     expect(monthlySeries(expenses, [gym], '2026-10', 3).map((m) => m.total)).toEqual([0, 250, 330.3]);
   });
-
 });
 
 describe('dailySeries', () => {

@@ -40,3 +40,11 @@ export function todayISO() {
   const pad = (n) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
+
+// Accepts "45", "12,5", "₪ 12.50"; returns NaN when there is no usable number.
+export function parseAmount(text) {
+  const cleaned = String(text ?? '')
+    .replace(/[^\d.,]/g, '')
+    .replace(',', '.');
+  return cleaned ? Number(cleaned) : NaN;
+}
