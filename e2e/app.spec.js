@@ -19,7 +19,10 @@ const daysAgo = (n) => {
 const gym = { id: 'r1', amount: 200, category: 'health', description: 'חדר כושר', day: 3, startMonth: PREV };
 
 // Loads the app with data already in localStorage (seeded once, so reloads keep what the test did).
-async function open(page, { expenses = [], recurring = [], budgets = null, categories = null, meta = null } = {}) {
+async function open(
+  page,
+  { expenses = [], recurring = [], budgets = null, categories = null, meta = null, path = '/' } = {},
+) {
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.addInitScript(
@@ -34,7 +37,7 @@ async function open(page, { expenses = [], recurring = [], budgets = null, categ
     },
     [expenses, recurring, budgets, categories, meta],
   );
-  await page.goto('/');
+  await page.goto(path);
   return errors;
 }
 
@@ -411,5 +414,46 @@ test.describe('new category', () => {
     await page.locator('.confirm-row button', { hasText: 'שחזור' }).click();
     await expect(form(page).locator('select option')).toHaveCount(2);
     await expect(rowFor(page, 'רומן').locator('.chip')).toContainText('ספרים');
+  });
+});
+
+test.describe('payment link (#pay-amount-shop)', () => {
+  const descriptionField = (page) => form(page).locator('input[placeholder^="למשל"]');
+
+  test('fills the form with the amount and the shop, and saves nothing by itself', async ({ page }) => {
+    await open(page, { path: '/#pay-45.50-Shufersal_City' });
+    await expect(amountField(page)).toHaveValue('45.5');
+    await expect(descriptionField(page)).toHaveValue('Shufersal City');
+    await expect(form(page).locator('input[type=date]')).toHaveValue(TODAY);
+    expect(await rowCount(page)).toBe(0);
+  });
+
+  test('guesses the category from the last expense in the same shop, and saving works as usual', async ({ page }) => {
+    await open(page, {
+      expenses: [{ id: 'old', amount: 80, date: `${PREV}-03`, category: 'shopping', description: 'Shufersal City' }],
+      path: '/#pay-45.50-Shufersal_City',
+    });
+    await expect(form(page).locator('select')).toHaveValue('shopping');
+    await form(page).locator('button[type=submit]').click();
+    await expect(rowFor(page, 'Shufersal City')).toHaveCount(1);
+    await expect(amountField(page)).toHaveValue('');
+  });
+
+  test('a link that is not a payment is ignored', async ({ page }) => {
+    await open(page, { path: '/#pay-abc' });
+    await expect(amountField(page)).toHaveValue('');
+    await open(page, { path: '/#something' });
+    await expect(amountField(page)).toHaveValue('');
+  });
+
+  test('cancel clears it, and a new link while the app is open replaces it', async ({ page }) => {
+    await open(page, { path: '/#pay-45.50-Shufersal_City' });
+    await form(page).locator('button', { hasText: 'ביטול' }).click();
+    await expect(amountField(page)).toHaveValue('');
+    await page.evaluate(() => {
+      window.location.hash = '#pay-12-Cafe';
+    });
+    await expect(amountField(page)).toHaveValue('12');
+    await expect(descriptionField(page)).toHaveValue('Cafe');
   });
 });

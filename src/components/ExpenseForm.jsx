@@ -2,13 +2,14 @@ import { useRef, useState } from 'react';
 import { useCategories } from '../hooks/CategoriesContext.js';
 import { parseAmount, todayISO } from '../lib/format.js';
 
-// initial: an expense being edited (empty when adding a new one).
-export default function ExpenseForm({ initial, onSubmit, onCancel }) {
+// initial: an expense being edited. prefill: { amount, description, category? } to start a new expense from
+// (for example from a payment link). Both are empty when adding from scratch.
+export default function ExpenseForm({ initial, prefill, onSubmit, onCancel }) {
   const { categories } = useCategories();
-  const [amount, setAmount] = useState(initial ? String(initial.amount) : '');
+  const [amount, setAmount] = useState(initial ? String(initial.amount) : (prefill?.amount ?? ''));
   const [date, setDate] = useState(initial?.date ?? todayISO());
-  const [category, setCategory] = useState(initial?.category ?? categories[0].id);
-  const [description, setDescription] = useState(initial?.description ?? '');
+  const [category, setCategory] = useState(initial?.category ?? prefill?.category ?? categories[0].id);
+  const [description, setDescription] = useState(initial?.description ?? prefill?.description ?? '');
   const [isRecurring, setIsRecurring] = useState(false);
   const [error, setError] = useState('');
   const amountRef = useRef(null);

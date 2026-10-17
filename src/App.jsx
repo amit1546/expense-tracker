@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useExpenses } from './hooks/useExpenses.js';
 import { CategoriesContext } from './hooks/CategoriesContext.js';
 import { dailySeries, monthlySeries, periodExpenses, rangeMonths, shiftMonth } from './lib/summary.js';
 import { filterAndSort } from './lib/list.js';
 import { lookup } from './lib/categories.js';
+import { categoryForMerchant, parsePayHash } from './lib/pay.js';
 import { addDays, backupFilename, backupReminder, makeBackup } from './lib/backup.js';
 import { saveTextFile } from './lib/files.js';
 import { formatMoney, formatMonth, todayISO } from './lib/format.js';
@@ -50,6 +51,9 @@ export default function App() {
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState('date-desc');
   const [editing, setEditing] = useState(null);
+  const [incoming, setIncoming] = useState(null); // a payment link waiting in the form
+  const [waited, setWaited] = useState(false);
+  const [linkTick, setLinkTick] = useState(0); // bumps when a payment link arrives while the app is open
   const [toast, setToast] = useState(null);
   const [flashId, setFlashId] = useState(null);
 
@@ -67,6 +71,35 @@ export default function App() {
     const t = setTimeout(() => setFlashId(null), 1800);
     return () => clearTimeout(t);
   }, [flashId]);
+
+  // A payment link (#pay-<amount>-<shop>) fills the add-expense form. It waits briefly for the cloud copy so the
+  // category can be guessed from past expenses, and never saves anything by itself.
+  const payLink = useRef(parsePayHash(window.location.hash));
+  useEffect(() => {
+    const read = () => {
+      payLink.current = parsePayHash(window.location.hash);
+      if (payLink.current) setLinkTick((n) => n + 1);
+    };
+    const t = setTimeout(() => setWaited(true), 3000);
+    window.addEventListener('hashchange', read);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener('hashchange', read);
+    };
+  }, []);
+  useEffect(() => {
+    const link = payLink.current;
+    if (!link || (syncStatus === 'connecting' && !waited)) return;
+    payLink.current = null;
+    setEditing(null);
+    setIncoming({
+      key: Date.now(),
+      amount: link.amount,
+      description: link.merchant,
+      category: categoryForMerchant(expenses, link.merchant),
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [syncStatus, waited, linkTick]);
 
   const keep = (e) => filterIds.length === 0 || filterIds.includes(e.category);
   const shownExpenses = expenses.filter(keep);
@@ -93,6 +126,7 @@ export default function App() {
   const toTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 
   const startEdit = (expense) => {
+    setIncoming(null);
     setEditing(expense);
     toTop();
   };
@@ -114,6 +148,7 @@ export default function App() {
     if (unhid) setFilterIds([]);
     const note = unhid ? ' (הסינון אופס)' : '';
     const editingRecurring = Boolean(editing?.recurring);
+    setIncoming(null);
     if (editingRecurring) {
       // applies to this month and every later one; earlier months keep their old values
       const from = editing.date.slice(0, 7);
@@ -183,10 +218,11 @@ export default function App() {
         <section className="card form-card">
           <h2>{editing ? (editing.recurring ? 'עריכת הוצאה קבועה' : 'עריכת הוצאה') : 'הוספת הוצאה'}</h2>
           <ExpenseForm
-            key={editing?.id ?? 'new'}
+            key={editing?.id ?? (incoming ? `pay-${incoming.key}` : 'new')}
             initial={editing}
+            prefill={incoming}
             onSubmit={handleSubmit}
-            onCancel={editing ? () => setEditing(null) : undefined}
+            onCancel={editing ? () => setEditing(null) : incoming ? () => setIncoming(null) : undefined}
           />
         </section>
 
@@ -250,6 +286,7 @@ export default function App() {
               onSave={saveBackup}
               onRestore={(next) => {
                 setEditing(null);
+                setIncoming(null);
                 setFilterIds([]);
                 notify('הנתונים שוחזרו מהגיבוי', replaceAll(next));
               }}
