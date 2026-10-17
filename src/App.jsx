@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useExpenses } from './hooks/useExpenses.js';
-import { monthlySeries, periodExpenses, rangeMonths, shiftMonth } from './lib/summary.js';
+import { dailySeries, monthlySeries, periodExpenses, rangeMonths, shiftMonth } from './lib/summary.js';
 import { getCategory } from './lib/categories.js';
 import { formatMoney, todayISO } from './lib/format.js';
 import ExpenseForm from './components/ExpenseForm.jsx';
@@ -40,7 +40,7 @@ export default function App() {
   const rows = periodExpenses(shownExpenses, shownRecurring, month, count);
   const prevRows = periodExpenses(shownExpenses, shownRecurring, shiftMonth(month, -count), count);
   const series = monthlySeries(shownExpenses, shownRecurring, month, count);
-  const trend = count === 1 ? monthlySeries(shownExpenses, shownRecurring, month, 6) : series;
+  const trend = count === 1 ? dailySeries(rows, month) : series;
   const prevTotal = prevRows.reduce((sum, e) => sum + e.amount, 0);
 
   const toggleCategory = (id) =>
@@ -59,6 +59,10 @@ export default function App() {
   const handleSubmit = (data, { recurring: isRecurring } = {}) => {
     const cat = getCategory(data.category);
     const money = formatMoney(data.amount);
+    // a new expense must never end up hidden by the category filter
+    const unhid = categories.length > 0 && !categories.includes(data.category);
+    if (unhid) setCategories([]);
+    const note = unhid ? ' (הסינון אופס)' : '';
     if (editing) {
       update(editing.id, data);
       setEditing(null);
@@ -67,10 +71,10 @@ export default function App() {
     } else if (isRecurring) {
       const { amount, category, description, date } = data;
       addRecurring({ amount, category, description, day: Number(date.slice(8, 10)), startMonth: date.slice(0, 7) });
-      setToast({ id: Date.now(), text: `נוספה הוצאה קבועה: ${money} ל${cat.name}` });
+      setToast({ id: Date.now(), text: `נוספה הוצאה קבועה: ${money} ל${cat.name}${note}` });
     } else {
       setFlashId(add(data));
-      setToast({ id: Date.now(), text: `נוסף: ${money} ל${cat.name}` });
+      setToast({ id: Date.now(), text: `נוסף: ${money} ל${cat.name}${note}` });
     }
     // make sure the new expense is on screen
     if (!rangeMonths(month, count).includes(data.date.slice(0, 7))) pickMonth(data.date.slice(0, 7));
@@ -109,7 +113,14 @@ export default function App() {
 
       <main className="layout">
         <section className="card wide">
-          <Summary rows={rows} count={count} series={series} prevTotal={prevTotal} />
+          <Summary
+            rows={rows}
+            count={count}
+            series={series}
+            prevTotal={prevTotal}
+            filterNames={categories.map((id) => getCategory(id).name)}
+            onClearFilter={() => setCategories([])}
+          />
         </section>
 
         <section className="card wide">

@@ -67,6 +67,24 @@ export function periodExpenses(expenses, recurring, endMonth, count) {
 
 const round2 = (n) => Math.round(n * 100) / 100;
 
+// One row per day of `month`: { date, total, [categoryId]: amount, ... } – `rows` are that month's expenses.
+export function dailySeries(rows, month) {
+  const days = Array.from({ length: daysInMonth(month) }, (_, i) => ({
+    date: `${month}-${String(i + 1).padStart(2, '0')}`,
+    total: 0,
+  }));
+  for (const r of rows) {
+    const day = days[Number(r.date.slice(8, 10)) - 1];
+    if (!day) continue;
+    day.total += r.amount;
+    day[r.category] = (day[r.category] ?? 0) + r.amount;
+  }
+  return days.map(({ date, ...rest }) => ({
+    date,
+    ...Object.fromEntries(Object.entries(rest).map(([k, v]) => [k, round2(v)])),
+  }));
+}
+
 // One row per month: { month, total, [categoryId]: amount, ... } – ready for a stacked chart.
 export function monthlySeries(expenses, recurring, endMonth, count) {
   return rangeMonths(endMonth, count).map((month) => {

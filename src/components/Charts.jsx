@@ -12,12 +12,25 @@ import {
   YAxis,
 } from 'recharts';
 import { CATEGORIES, getCategory } from '../lib/categories.js';
-import { compactMoney, formatMoney, formatMonth, formatMonthName } from '../lib/format.js';
+import { compactMoney, formatDate, formatMoney, formatMonth, formatMonthName } from '../lib/format.js';
 import { total, totalsByCategory } from '../lib/summary.js';
 
-const BAR_TITLES = { 1: '6 החודשים האחרונים', 6: 'הוצאות לפי חודש', 12: 'הוצאות לפי חודש' };
+// A single month is drawn day by day; 6 months and a year are drawn month by month.
+const COPY = {
+  days: { title: 'הוצאות לפי יום', sub: 'כל עמודה היא יום בחודש. לחיצה או ריחוף מציגים את הפירוט.' },
+  months: { title: 'הוצאות לפי חודש', sub: 'לחיצה על עמודה פותחת את החודש הזה.' },
+};
 
-function MonthTick({ x, y, payload, inRange }) {
+function AxisTick({ x, y, payload, mode, inRange }) {
+  if (mode === 'days') {
+    const day = Number(payload.value.slice(8, 10));
+    if (day !== 1 && day % 5 !== 0) return null;
+    return (
+      <text x={x} y={y + 14} textAnchor="middle" fontSize={12} fill="var(--muted)">
+        {day}
+      </text>
+    );
+  }
   const on = inRange.includes(payload.value);
   return (
     <text
@@ -33,13 +46,14 @@ function MonthTick({ x, y, payload, inRange }) {
   );
 }
 
-function BarTooltip({ active, payload }) {
+function BarTooltip({ active, payload, mode }) {
   if (!active || !payload?.length) return null;
   const row = payload[0].payload;
+  if (!row.total) return null;
   const parts = payload.filter((p) => p.dataKey !== 'total' && p.value > 0).reverse();
   return (
     <div className="tip">
-      <strong>{formatMonth(row.month)}</strong>
+      <strong>{mode === 'days' ? formatDate(row.date) : formatMonth(row.month)}</strong>
       {parts.map((p) => (
         <div key={p.dataKey} className="tip-row">
           <span>
@@ -57,8 +71,27 @@ function BarTooltip({ active, payload }) {
   );
 }
 
-// rows: expenses of the period; trend: monthly series (stacked by category); inRange: months inside the period
+function PieTooltip({ active, payload }) {
+  if (!active || !payload?.length) return null;
+  const d = payload[0];
+  return (
+    <div className="tip">
+      <div className="tip-row">
+        <span>
+          <span className="dot" style={{ background: d.payload.color }} />
+          {d.name}
+        </span>
+        <span className="num">{formatMoney(d.value)}</span>
+      </div>
+    </div>
+  );
+}
+
+// rows: expenses of the period; trend: series to stack by category (days of the month, or months);
+// inRange: months inside the period (month mode only)
 export default function Charts({ rows, trend, inRange, count, onPickMonth, onToggleCategory }) {
+  const mode = count === 1 ? 'days' : 'months';
+  const xKey = mode === 'days' ? 'date' : 'month';
   const sum = total(rows);
   const pieData = totalsByCategory(rows).map((d) => ({
     ...d,
@@ -94,7 +127,7 @@ export default function Charts({ rows, trend, inRange, count, onPickMonth, onTog
                       <Cell key={d.category} fill={d.color} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(v) => formatMoney(v)} />
+                  <Tooltip content={<PieTooltip />} />
                 </PieChart>
               </ResponsiveContainer>
               <div className="donut-center">
@@ -105,7 +138,11 @@ export default function Charts({ rows, trend, inRange, count, onPickMonth, onTog
             <ul className="legend">
               {pieData.map((d) => (
                 <li key={d.category}>
-                  <button className="legend-item" style={{ '--chip': d.color }} onClick={() => onToggleCategory(d.category)}>
+                  <button
+                    className="legend-item"
+                    style={{ '--chip': d.color }}
+                    onClick={() => onToggleCategory(d.category)}
+                  >
                     <span className="swatch" />
                     {d.name}
                     <strong className="num">{d.share}%</strong>
@@ -116,22 +153,20 @@ export default function Charts({ rows, trend, inRange, count, onPickMonth, onTog
           </>
         )}
       </div>
-      <div className="chart">
-        <h3>{BAR_TITLES[count]}</h3>
-        <p className="sub">
-          {count === 1 ? 'החודש שבחרת מודגש. ' : ''}לחיצה על עמודה פותחת את החודש.
-        </p>
+      <div className={`chart ${mode}`}>
+        <h3>{COPY[mode].title}</h3>
+        <p className="sub">{COPY[mode].sub}</p>
         <ResponsiveContainer width="100%" height={290}>
-          {/* reversed so the newest month is on the left, matching RTL reading order */}
+          {/* reversed so the newest bar is on the left, matching RTL reading order */}
           <ComposedChart data={trend} margin={{ top: 22, right: 8, left: 8, bottom: 0 }}>
             <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
             <XAxis
-              dataKey="month"
+              dataKey={xKey}
               reversed
               axisLine={{ stroke: 'var(--border)' }}
               tickLine={false}
               interval={0}
-              tick={(props) => <MonthTick {...props} inRange={inRange} />}
+              tick={(props) => <AxisTick {...props} mode={mode} inRange={inRange} />}
             />
             <YAxis
               orientation="right"
@@ -142,22 +177,26 @@ export default function Charts({ rows, trend, inRange, count, onPickMonth, onTog
               tickFormatter={compactMoney}
               tick={{ fill: 'var(--muted)', fontSize: 12 }}
             />
-            <Tooltip content={<BarTooltip />} cursor={{ fill: 'var(--hover)' }} />
+            <Tooltip content={<BarTooltip mode={mode} />} cursor={{ fill: 'var(--hover)', stroke: 'none' }} />
             {CATEGORIES.map((c) => (
               <Bar
                 key={c.id}
                 dataKey={c.id}
                 name={c.name}
-                stackId="months"
+                stackId="stack"
                 fill={c.color}
-                onClick={(d) => onPickMonth(d.payload?.month ?? d.month)}
+                onClick={mode === 'months' ? (d) => onPickMonth(d.payload?.month ?? d.month) : undefined}
               >
                 {trend.map((d) => (
-                  <Cell key={d.month} fill={c.color} fillOpacity={inRange.includes(d.month) ? 1 : 0.3} />
+                  <Cell
+                    key={d[xKey]}
+                    fill={c.color}
+                    fillOpacity={mode === 'days' || inRange.includes(d.month) ? 1 : 0.3}
+                  />
                 ))}
               </Bar>
             ))}
-            {/* invisible line that only carries the total label above each stack */}
+            {/* invisible line that only carries the total label above each month's stack */}
             <Line
               dataKey="total"
               name="סה״כ"
@@ -165,13 +204,17 @@ export default function Charts({ rows, trend, inRange, count, onPickMonth, onTog
               dot={false}
               activeDot={false}
               isAnimationActive={false}
-              label={{
-                position: 'top',
-                fill: 'var(--text)',
-                fontSize: 12,
-                fontWeight: 600,
-                formatter: (v) => (v > 0 ? compactMoney(v) : ''),
-              }}
+              label={
+                mode === 'months'
+                  ? {
+                      position: 'top',
+                      fill: 'var(--text)',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      formatter: (v) => (v > 0 ? compactMoney(v) : ''),
+                    }
+                  : false
+              }
             />
           </ComposedChart>
         </ResponsiveContainer>

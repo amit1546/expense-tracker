@@ -24,8 +24,9 @@ Hebrew (RTL) expense tracker. React 18 + Vite + Recharts, data in `localStorage`
 ## Decisions so far
 - Periods are month / 6 months / year, counted back from the selected month; the arrows move a whole period.
 - The category filter is applied to the data before any calculation, so totals, charts and the list always agree.
-- Charts: the donut shows the period total in the middle with a legend; the stacked bars carry a total label per month. Chart internals are forced `direction: ltr` (SVG text anchors flip in RTL).
+- Charts: the donut shows the period total in the middle with a legend. The bar chart is per day for a single month (`dailySeries`) and per month, with a total label above each bar, for 6 months / a year. Tooltips are our own themed `.tip` (Recharts' default is a white box). Chart internals are forced `direction: ltr` (SVG text anchors flip in RTL).
 - Look: sober and flat (solid navy header and buttons, small-radius chips with a colour dot, no emoji, no gradients, no entrance animations). Keep it that way. Touches that stay: category picker as buttons, toast after adding, a brief flash on the new row, a one-sentence summary at the top of the summary card. On phones the list becomes cards.
+- Forms are `noValidate` with our own message (iOS fails silently on native validation); the amount is a text field that accepts `12,5` and `₪ 12.50`. Adding an expense whose category is hidden by the filter clears the filter, and the summary card says when a filter is active.
 - Recurring items can be stopped from a month on (earlier months keep their history) but not edited.
 - Palette is navy / steel / teal with an amber highlight, defined as CSS tokens at the top of `src/index.css`
   (light, `prefers-color-scheme: dark`, and `[data-theme='dark']`). Use tokens, not literal colors.

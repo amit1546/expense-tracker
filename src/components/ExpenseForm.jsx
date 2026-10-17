@@ -13,9 +13,11 @@ export default function ExpenseForm({ initial, onSubmit, onCancel }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const value = Number(amount);
+    // accept "12,5", "₪ 12.50" and the like
+    const value = Number(amount.replace(/[^\d.,]/g, '').replace(',', '.'));
     if (!Number.isFinite(value) || value <= 0) {
-      setError('יש להזין סכום חיובי');
+      setError('יש להזין סכום חיובי, למשל 45 או 12.50');
+      amountRef.current?.focus();
       return;
     }
     if (!date) {
@@ -36,18 +38,17 @@ export default function ExpenseForm({ initial, onSubmit, onCancel }) {
   };
 
   return (
-    <form className="expense-form" onSubmit={handleSubmit}>
+    <form className="expense-form" onSubmit={handleSubmit} noValidate>
       <label>
         סכום (₪)
         <input
           ref={amountRef}
-          type="number"
+          type="text"
           inputMode="decimal"
-          step="0.01"
-          min="0"
+          autoComplete="off"
+          placeholder="0.00"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
-          required
         />
       </label>
       <label>
@@ -79,7 +80,11 @@ export default function ExpenseForm({ initial, onSubmit, onCancel }) {
           </button>
         ))}
       </fieldset>
-      {error && <p className="error">{error}</p>}
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
       <div className="form-foot">
         {!initial ? (
           <label className="check">

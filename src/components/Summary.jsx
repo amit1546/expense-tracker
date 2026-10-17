@@ -7,7 +7,7 @@ const WHEN = { 1: 'בחודש הזה', 6: 'ב-6 החודשים האלה', 12: '�
 const PREVIOUS = { 1: 'החודש הקודם', 6: '6 החודשים הקודמים', 12: 'השנה הקודמת' };
 
 // rows: every expense in the period; series: one entry per month of the period; prevTotal: the period before it
-export default function Summary({ rows, count, series, prevTotal }) {
+export default function Summary({ rows, count, series, prevTotal, filterNames, onClearFilter }) {
   const sum = total(rows);
   const byCategory = totalsByCategory(rows);
   const fixed = total(rows.filter((e) => e.recurring));
@@ -17,6 +17,14 @@ export default function Summary({ rows, count, series, prevTotal }) {
   return (
     <div className="summary">
       <h2>{TITLES[count]}</h2>
+      {filterNames.length > 0 && (
+        <p className="filter-note">
+          מוצגות רק: {filterNames.join(', ')}
+          <button className="link" onClick={onClearFilter}>
+            הצג הכול
+          </button>
+        </p>
+      )}
       <p className="lead">
         {rows.length === 0 ? (
           'עוד לא נרשמו הוצאות בתקופה הזו. אפשר להתחיל מההוספה למעלה.'

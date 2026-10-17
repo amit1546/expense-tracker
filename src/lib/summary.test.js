@@ -7,6 +7,7 @@ import {
   rangeMonths,
   periodExpenses,
   monthlySeries,
+  dailySeries,
   recurringIn,
   monthExpenses,
 } from './summary.js';
@@ -82,4 +83,18 @@ describe('recurring', () => {
     expect(monthlySeries(expenses, [gym], '2026-10', 3).map((m) => m.total)).toEqual([0, 250, 330.3]);
   });
 
+});
+
+describe('dailySeries', () => {
+  it('has one entry per day of the month, with totals split by category', () => {
+    const days = dailySeries(filterByMonth(expenses, '2026-10'), '2026-10');
+    expect(days).toHaveLength(31);
+    expect(days[0]).toEqual({ date: '2026-10-01', total: 10.1, food: 10.1 });
+    expect(days[1]).toEqual({ date: '2026-10-02', total: 0 });
+    expect(days[19]).toEqual({ date: '2026-10-20', total: 100, bills: 100 });
+  });
+
+  it('follows the length of February', () => {
+    expect(dailySeries([], '2027-02')).toHaveLength(28);
+  });
 });
