@@ -14,7 +14,9 @@ export default function CategoryFilter({ selected, onToggle, onClear }) {
             aria-pressed={on}
             onClick={() => onToggle(c.id)}
           >
-            <span className="dot" />
+            <span className="icon" aria-hidden="true">
+              {c.icon}
+            </span>
             {on && '✓ '}
             {c.name}
           </button>

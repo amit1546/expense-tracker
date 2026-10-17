@@ -22,6 +22,19 @@ export function formatMonthShort(month) {
   return `${m}/${y.slice(2)}`;
 }
 
+const monthShort = new Intl.DateTimeFormat('he-IL', { month: 'short' });
+
+// month is 'YYYY-MM' -> short Hebrew month name
+export function formatMonthName(month) {
+  const [y, m] = month.split('-').map(Number);
+  return monthShort.format(new Date(y, m - 1, 1));
+}
+
+// 850 -> '850', 1600 -> '1.6K', 12000 -> '12K'
+export function compactMoney(n) {
+  return n >= 1000 ? `${Math.round(n / 100) / 10}K` : String(Math.round(n));
+}
+
 export function todayISO() {
   const d = new Date();
   const pad = (n) => String(n).padStart(2, '0');

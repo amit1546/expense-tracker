@@ -54,16 +54,6 @@ export function monthExpenses(expenses, recurring, month) {
   return [...filterByMonth(expenses, month), ...recurringIn(recurring, month)];
 }
 
-// Everything up to and including `uptoMonth`, with recurring items expanded month by month.
-export function allWithRecurring(expenses, recurring, uptoMonth) {
-  const out = [...expenses];
-  for (const r of recurring) {
-    const last = r.endMonth && r.endMonth < uptoMonth ? r.endMonth : uptoMonth;
-    for (let m = r.startMonth; m <= last; m = shiftMonth(m, 1)) out.push(...recurringIn([r], m));
-  }
-  return out;
-}
-
 // The `count` months ending at (and including) `endMonth`, oldest first.
 export function rangeMonths(endMonth, count) {
   const months = [];

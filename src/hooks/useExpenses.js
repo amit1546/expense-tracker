@@ -17,7 +17,11 @@ export function useExpenses() {
     saveRecurring(recurring);
   }, [recurring]);
 
-  const add = (expense) => setExpenses((list) => [...list, { ...expense, id: newId() }]);
+  const add = (expense) => {
+    const id = newId();
+    setExpenses((list) => [...list, { ...expense, id }]);
+    return id;
+  };
   const update = (id, changes) =>
     setExpenses((list) => list.map((e) => (e.id === id ? { ...e, ...changes } : e)));
   const remove = (id) => setExpenses((list) => list.filter((e) => e.id !== id));

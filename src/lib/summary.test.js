@@ -9,7 +9,6 @@ import {
   monthlySeries,
   recurringIn,
   monthExpenses,
-  allWithRecurring,
 } from './summary.js';
 
 const expenses = [
@@ -83,8 +82,4 @@ describe('recurring', () => {
     expect(monthlySeries(expenses, [gym], '2026-10', 3).map((m) => m.total)).toEqual([0, 250, 330.3]);
   });
 
-  it('expands every month up to a given month for the full export', () => {
-    const all = allWithRecurring([], [gym], '2026-11');
-    expect(all.map((e) => e.date)).toEqual(['2026-09-30', '2026-10-31', '2026-11-30']);
-  });
 });

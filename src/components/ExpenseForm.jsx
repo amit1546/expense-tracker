@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { CATEGORIES } from '../lib/categories.js';
 import { todayISO } from '../lib/format.js';
 
@@ -9,6 +9,7 @@ export default function ExpenseForm({ initial, onSubmit, onCancel }) {
   const [description, setDescription] = useState(initial?.description ?? '');
   const [isRecurring, setIsRecurring] = useState(false);
   const [error, setError] = useState('');
+  const amountRef = useRef(null);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -29,6 +30,7 @@ export default function ExpenseForm({ initial, onSubmit, onCancel }) {
       setAmount('');
       setDescription('');
       setIsRecurring(false);
+      amountRef.current?.focus();
     }
     setError('');
   };
@@ -38,6 +40,7 @@ export default function ExpenseForm({ initial, onSubmit, onCancel }) {
       <label>
         סכום (₪)
         <input
+          ref={amountRef}
           type="number"
           inputMode="decimal"
           step="0.01"
@@ -52,16 +55,6 @@ export default function ExpenseForm({ initial, onSubmit, onCancel }) {
         <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
       </label>
       <label>
-        קטגוריה
-        <select value={category} onChange={(e) => setCategory(e.target.value)}>
-          {CATEGORIES.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label>
         תיאור
         <input
           type="text"
@@ -70,6 +63,24 @@ export default function ExpenseForm({ initial, onSubmit, onCancel }) {
           placeholder="למשל: קניות בסופר"
         />
       </label>
+      <fieldset className="cat-picker">
+        <legend>קטגוריה</legend>
+        {CATEGORIES.map((c) => (
+          <button
+            key={c.id}
+            type="button"
+            className="cat-btn"
+            style={{ '--chip': c.color }}
+            aria-pressed={category === c.id}
+            onClick={() => setCategory(c.id)}
+          >
+            <span className="icon" aria-hidden="true">
+              {c.icon}
+            </span>
+            {c.name}
+          </button>
+        ))}
+      </fieldset>
       {error && <p className="error">{error}</p>}
       <div className="form-foot">
         {!initial ? (

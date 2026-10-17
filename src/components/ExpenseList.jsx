@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { getCategory } from '../lib/categories.js';
 import { formatDate, formatMoney } from '../lib/format.js';
 
-export default function ExpenseList({ expenses, onEdit, onDelete }) {
+export default function ExpenseList({ expenses, highlightId, onEdit, onDelete }) {
   const [confirmId, setConfirmId] = useState(null);
 
   if (expenses.length === 0) {
@@ -27,11 +27,13 @@ export default function ExpenseList({ expenses, onEdit, onDelete }) {
           {sorted.map((e) => {
             const cat = getCategory(e.category);
             return (
-              <tr key={e.id}>
+              <tr key={e.id} className={e.id === highlightId ? 'flash' : undefined}>
                 <td>{formatDate(e.date)}</td>
                 <td>
                   <span className="chip" style={{ '--chip': cat.color }}>
-                    <span className="dot" />
+                    <span className="icon" aria-hidden="true">
+                      {cat.icon}
+                    </span>
                     {cat.name}
                   </span>
                 </td>
