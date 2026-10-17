@@ -3,7 +3,7 @@ import { useExpenses } from './hooks/useExpenses.js';
 import { CategoriesContext } from './hooks/CategoriesContext.js';
 import { dailySeries, monthlySeries, periodExpenses, rangeMonths, shiftMonth } from './lib/summary.js';
 import { filterAndSort } from './lib/list.js';
-import { FALLBACK_ID, lookup } from './lib/categories.js';
+import { lookup } from './lib/categories.js';
 import { addDays, backupFilename, backupReminder, makeBackup } from './lib/backup.js';
 import { saveTextFile } from './lib/files.js';
 import { formatMoney, formatMonth, todayISO } from './lib/format.js';
@@ -36,8 +36,6 @@ export default function App() {
     editRecurringFrom,
     replaceAll,
     addCategory,
-    updateCategory,
-    removeCategory,
     markBackedUp,
     snoozeReminder,
   } = useExpenses();
@@ -50,7 +48,6 @@ export default function App() {
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState('date-desc');
   const [editing, setEditing] = useState(null);
-  const [draft, setDraft] = useState(null); // a duplicated expense waiting in the form
   const [toast, setToast] = useState(null);
   const [flashId, setFlashId] = useState(null);
 
@@ -80,9 +77,6 @@ export default function App() {
   const prevTotal = prevRows.reduce((sum, e) => sum + e.amount, 0);
   const listRows = filterAndSort(rows, { query, sort, categoryName: (id) => getCategory(id).name });
 
-  const counts = {};
-  for (const item of [...expenses, ...recurring]) counts[item.category] = (counts[item.category] ?? 0) + 1;
-
   const today = todayISO();
   const reminder = backupReminder(meta, today, expenses.length > 0 || recurring.length > 0);
 
@@ -97,14 +91,7 @@ export default function App() {
   const toTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 
   const startEdit = (expense) => {
-    setDraft(null);
     setEditing(expense);
-    toTop();
-  };
-
-  const startDuplicate = (expense) => {
-    setEditing(null);
-    setDraft({ key: Date.now(), amount: expense.amount, category: expense.category, description: expense.description });
     toTop();
   };
 
@@ -145,11 +132,9 @@ export default function App() {
     } else if (isRecurring) {
       const { amount, category, description, date } = data;
       addRecurring({ amount, category, description, day: Number(date.slice(8, 10)), startMonth: date.slice(0, 7) });
-      setDraft(null);
       notify(`נוספה הוצאה קבועה: ${money} ל${cat.name}${note}`);
     } else {
       setFlashId(add(data));
-      setDraft(null);
       notify(`נוסף: ${money} ל${cat.name}${note}`);
     }
     // make sure the new expense is on screen
@@ -166,14 +151,11 @@ export default function App() {
     notify('ההוצאה נמחקה', remove(expense.id));
   };
 
-  const handleRemoveCategory = (id) => {
-    const name = getCategory(id).name;
-    setFilterIds((list) => list.filter((c) => c !== id));
-    notify(`הקטגוריה "${name}" נמחקה, ההוצאות שלה עברו ל"${getCategory(FALLBACK_ID).name}"`, removeCategory(id));
+  const handleAddCategory = (name, color) => {
+    notify(`נוספה הקטגוריה "${name}"`, addCategory(name, color));
   };
 
   const searching = query.trim() !== '';
-  const formKey = editing?.id ?? (draft ? `dup-${draft.key}` : 'new');
 
   return (
     <CategoriesContext.Provider value={names}>
@@ -198,11 +180,10 @@ export default function App() {
         <section className="card form-card">
           <h2>{editing ? (editing.recurring ? 'עריכת הוצאה קבועה' : 'עריכת הוצאה') : 'הוספת הוצאה'}</h2>
           <ExpenseForm
-            key={formKey}
+            key={editing?.id ?? 'new'}
             initial={editing}
-            prefill={draft}
             onSubmit={handleSubmit}
-            onCancel={editing ? () => setEditing(null) : draft ? () => setDraft(null) : undefined}
+            onCancel={editing ? () => setEditing(null) : undefined}
           />
         </section>
 
@@ -252,19 +233,12 @@ export default function App() {
               highlightId={flashId}
               emptyText={searching ? 'לא נמצאו הוצאות שמתאימות לחיפוש.' : 'אין הוצאות בתקופה הזו.'}
               onEdit={startEdit}
-              onDuplicate={startDuplicate}
               onDelete={handleDelete}
             />
           </section>
 
           <section className="card wide">
-            <CategoryManager
-              categories={categories}
-              counts={counts}
-              onAdd={addCategory}
-              onUpdate={updateCategory}
-              onRemove={handleRemoveCategory}
-            />
+            <CategoryManager categories={categories} onAdd={handleAddCategory} />
           </section>
 
           <section className="card wide">
@@ -273,8 +247,7 @@ export default function App() {
               onSave={saveBackup}
               onRestore={(next) => {
                 setEditing(null);
-                setDraft(null);
-                setFilterIds([]);
+                          setFilterIds([]);
                 notify('הנתונים שוחזרו מהגיבוי', replaceAll(next));
               }}
             />

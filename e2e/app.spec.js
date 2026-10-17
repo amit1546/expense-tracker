@@ -277,28 +277,6 @@ test.describe('data safety', () => {
   });
 });
 
-test.describe('duplicate', () => {
-  test('copies amount, category and description into the form with today\'s date', async ({ page }) => {
-    await open(page, { expenses: [food] });
-    await rowFor(page, 'סופר').locator('button', { hasText: 'שכפול' }).click();
-    await expect(amountField(page)).toHaveValue('1800');
-    await expect(form(page).locator('select')).toHaveValue('food');
-    await expect(form(page).locator('input[placeholder^="למשל"]')).toHaveValue('סופר');
-    await expect(form(page).locator('input[type=date]')).toHaveValue(TODAY);
-    await form(page).locator('button[type=submit]').click();
-    await expect(rowFor(page, 'סופר')).toHaveCount(2);
-    await expect(amountField(page)).toHaveValue('');
-  });
-
-  test('cancel empties the form, and recurring rows have no duplicate button', async ({ page }) => {
-    await open(page, { expenses: [food], recurring: [gym] });
-    await expect(rowFor(page, 'חדר כושר').locator('button', { hasText: 'שכפול' })).toHaveCount(0);
-    await rowFor(page, 'סופר').locator('button', { hasText: 'שכפול' }).click();
-    await form(page).locator('button', { hasText: 'ביטול' }).click();
-    await expect(amountField(page)).toHaveValue('');
-  });
-});
-
 test.describe('weekly backup reminder', () => {
   const stale = { lastBackup: daysAgo(10), firstUse: daysAgo(60), snoozedUntil: null };
 
@@ -341,53 +319,54 @@ test.describe('weekly backup reminder', () => {
   });
 });
 
-test.describe('custom categories', () => {
+test.describe('new category', () => {
   const manager = (page) => page.locator('.cat-manager');
-
-  test('a new category shows up in the form, the filter, the budget editor and the charts legend', async ({ page }) => {
-    await open(page);
-    await manager(page).locator('input[aria-label="שם קטגוריה חדשה"]').fill('ספרים');
+  const addCategory = async (page, name) => {
+    await manager(page).locator('input[aria-label="שם קטגוריה חדשה"]').fill(name);
     await manager(page).locator('button[type=submit]').click();
-    await expect(form(page).locator('select option', { hasText: 'ספרים' })).toHaveCount(1);
-    await expect(page.locator('.filters button', { hasText: 'ספרים' })).toHaveCount(1);
-    await addExpense(page, { amount: '80', category: await form(page).locator('select option', { hasText: 'ספרים' }).getAttribute('value'), description: 'רומן' });
-    await expect(rowFor(page, 'רומן').locator('.chip')).toContainText('ספרים');
-    await expect(page.locator('.category-list')).toContainText('ספרים');
-    await page.locator('.summary-head button').click();
-    await expect(page.locator('.budget-grid')).toContainText('ספרים');
+  };
+
+  test('is a single small row, with no list of existing categories', async ({ page }) => {
+    await open(page);
+    await expect(manager(page).locator('input[type=text]')).toHaveCount(1);
+    await expect(page.locator('.cat-row, .cat-list')).toHaveCount(0);
+    await expect(page.locator('button', { hasText: 'שכפול' })).toHaveCount(0);
   });
 
-  test('rename and recolor apply everywhere', async ({ page }) => {
-    await open(page, { expenses: [food] });
-    const nameInput = manager(page).locator('input[aria-label="שם הקטגוריה אוכל"]');
-    await nameInput.fill('מזון');
-    await nameInput.press('Enter');
-    await expect(rowFor(page, 'סופר').locator('.chip')).toContainText('מזון');
-    await expect(form(page).locator('select option[value=food]')).toHaveText('מזון');
-    await manager(page).locator('input[type=color][aria-label="צבע לאוכל"], input[type=color][aria-label="צבע למזון"]').first().fill('#112233');
-    const color = await rowFor(page, 'סופר').locator('.chip').evaluate((el) => el.style.getPropertyValue('--chip'));
-    expect(color).toBe('#112233');
+  test('shows up in the form, the filter and the budget editor, and the toast confirms it', async ({ page }) => {
+    await open(page);
+    await addCategory(page, 'ספרים');
+    await expect(page.locator('.toast')).toContainText('ספרים');
+    await expect(form(page).locator('select option', { hasText: 'ספרים' })).toHaveCount(1);
+    await expect(page.locator('.filters button', { hasText: 'ספרים' })).toHaveCount(1);
+    await page.locator('.summary-head button').click();
+    await expect(page.locator('.budget-grid')).toContainText('ספרים');
+    await expect(manager(page).locator('input[aria-label="שם קטגוריה חדשה"]')).toHaveValue('');
+  });
+
+  test('can be used right away', async ({ page }) => {
+    await open(page);
+    await addCategory(page, 'ספרים');
+    const value = await form(page).locator('select option', { hasText: 'ספרים' }).getAttribute('value');
+    await addExpense(page, { amount: '80', category: value, description: 'רומן' });
+    await expect(rowFor(page, 'רומן').locator('.chip')).toContainText('ספרים');
+    await expect(page.locator('.category-list')).toContainText('ספרים');
+  });
+
+  test('undo removes it again', async ({ page }) => {
+    await open(page);
+    await addCategory(page, 'ספרים');
+    await page.locator('.toast button').click();
+    await expect(form(page).locator('select option')).toHaveCount(7);
   });
 
   test('refuses an empty or duplicate name', async ({ page }) => {
     await open(page);
     await manager(page).locator('button[type=submit]').click();
     await expect(manager(page).locator('.error')).toContainText('שם');
-    await manager(page).locator('input[aria-label="שם קטגוריה חדשה"]').fill('אוכל');
-    await manager(page).locator('button[type=submit]').click();
+    await addCategory(page, 'אוכל');
     await expect(manager(page).locator('.error')).toContainText('כבר יש');
     await expect(form(page).locator('select option')).toHaveCount(7);
-  });
-
-  test('deleting moves its expenses to "other" and can be undone; "other" cannot be deleted', async ({ page }) => {
-    await open(page, { expenses: [food, bills] });
-    await expect(manager(page).locator('.cat-row', { has: page.locator('input[aria-label="שם הקטגוריה אחר"]') }).locator('button')).toHaveCount(0);
-    await manager(page).locator('.cat-row', { has: page.locator('input[aria-label="שם הקטגוריה אוכל"]') }).locator('button', { hasText: 'מחיקה' }).click();
-    await expect(form(page).locator('select option[value=food]')).toHaveCount(0);
-    await expect(rowFor(page, 'סופר').locator('.chip')).toContainText('אחר');
-    await page.locator('.toast button').click();
-    await expect(form(page).locator('select option[value=food]')).toHaveCount(1);
-    await expect(rowFor(page, 'סופר').locator('.chip')).toContainText('אוכל');
   });
 
   test('a custom category survives a backup and restore', async ({ page }, testInfo) => {

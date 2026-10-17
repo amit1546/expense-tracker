@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   loadBudgets,
   loadCategories,
@@ -95,6 +95,8 @@ export function useExpenses() {
     setBudgets(state.budgets);
   };
   const snapshot = () => ({ categories, expenses, recurring, budgets });
+  const latest = useRef(null);
+  latest.current = snapshot();
 
   const replaceAll = (next) => {
     const previous = snapshot();
@@ -102,17 +104,11 @@ export function useExpenses() {
     return () => restoreAll(previous);
   };
 
+  // Returns an undo function. It removes the category again and moves anything that already uses it to "other".
   const addCategory = (name, color) => {
     const id = newCategoryId();
     setCategories((list) => insertCategory(list, { id, name: name.trim(), color }));
-    return id;
-  };
-  const updateCategory = (id, changes) =>
-    setCategories((list) => list.map((c) => (c.id === id ? { ...c, ...changes } : c)));
-  const removeCategory = (id) => {
-    const previous = snapshot();
-    restoreAll(removeCategoryFrom(previous, id));
-    return () => restoreAll(previous);
+    return () => restoreAll(removeCategoryFrom(latest.current, id));
   };
 
   const markBackedUp = () => setMeta((m) => ({ ...m, lastBackup: todayISO(), snoozedUntil: null }));
@@ -133,8 +129,6 @@ export function useExpenses() {
     editRecurringFrom,
     replaceAll,
     addCategory,
-    updateCategory,
-    removeCategory,
     markBackedUp,
     snoozeReminder,
   };

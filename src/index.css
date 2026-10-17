@@ -934,34 +934,36 @@ button.legend-item:hover {
   padding: 6px 12px;
 }
 
-.cat-list {
-  list-style: none;
-  margin: 0 0 12px;
-  padding: 0;
-  display: grid;
-  gap: 8px;
-}
-
-.cat-row,
 .cat-add {
-  display: grid;
-  grid-template-columns: auto 1fr 2ch 3.4rem;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  gap: 8px 10px;
 }
 
-.cat-add {
-  grid-template-columns: auto 1fr auto;
+.cat-add h2 {
+  margin: 0 0 0 4px;
+  font-size: 1rem;
 }
 
-.cat-row input[type='text'],
 .cat-add input[type='text'] {
+  flex: 0 1 180px;
+  width: auto;
   min-width: 0;
+  padding: 5px 10px;
+}
+
+.cat-add button {
+  padding: 5px 14px;
+}
+
+.cat-manager .error {
+  margin: 8px 0 0;
 }
 
 input[type='color'] {
-  width: 34px;
-  height: 34px;
+  width: 28px;
+  height: 28px;
   padding: 0;
   border: 1px solid var(--border);
   border-radius: 50%;
@@ -983,9 +985,6 @@ input[type='color']::-moz-color-swatch {
   border-radius: 50%;
 }
 
-.cat-manager h2 {
-  margin-bottom: 12px;
-}
 
 .backup .muted {
   flex: 1 1 auto;
