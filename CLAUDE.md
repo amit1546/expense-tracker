@@ -5,6 +5,10 @@ Hebrew (RTL) expense tracker. React 18 + Vite + Recharts, data in `localStorage`
 ## Commands
 - `npm run dev` – dev server
 - `npm test` – Vitest (pure logic in `src/lib`)
+- `npm run test:e2e` – Playwright against the real production build, in a desktop and a phone-sized dark-mode browser
+  (`e2e/app.spec.js`, 21 scenarios x 2). Run it before publishing any UI change; add a scenario for every bug fixed.
+  Needs the Chromium that comes with the environment (`PLAYWRIGHT_BROWSERS_PATH`); `webServer` in
+  `playwright.config.js` builds and serves the app itself.
 - `npm run build` – production build to `dist/`
 - `npm run build:artifact` – also bundles everything into `dist/expense-tracker.html`, the single file
   published as a claude.ai Artifact

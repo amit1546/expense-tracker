@@ -20,7 +20,8 @@
 ```bash
 npm install
 npm run dev            # שרת פיתוח
-npm test               # בדיקות
+npm test               # בדיקות חישוב
+npm run test:e2e       # בדיקות מסך בדפדפן אמיתי (מחשב וטלפון)
 npm run build          # בנייה לפרודקשן (לתיקייה dist)
 npm run build:artifact # קובץ HTML יחיד לפרסום כ-Artifact ב-claude.ai (dist/expense-tracker.html)
 ```

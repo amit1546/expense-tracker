@@ -41,7 +41,8 @@
 ```bash
 npm install
 npm run dev             # שרת פיתוח
-npm test                # 14 בדיקות
+npm test                # בדיקות חישוב
+npm run test:e2e        # בדיקות מסך בדפדפן אמיתי
 npm run build           # בנייה לפרודקשן
 npm run build:artifact  # קובץ HTML יחיד לפרסום ב-claude.ai (dist/expense-tracker.html)
 ```
