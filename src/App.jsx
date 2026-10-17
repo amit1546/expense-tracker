@@ -67,10 +67,10 @@ export default function App() {
     } else if (isRecurring) {
       const { amount, category, description, date } = data;
       addRecurring({ amount, category, description, day: Number(date.slice(8, 10)), startMonth: date.slice(0, 7) });
-      setToast({ id: Date.now(), text: `נוספה הוצאה קבועה: ${money} ל${cat.name} ${cat.icon}` });
+      setToast({ id: Date.now(), text: `נוספה הוצאה קבועה: ${money} ל${cat.name}` });
     } else {
       setFlashId(add(data));
-      setToast({ id: Date.now(), text: `נוסף: ${money} ל${cat.name} ${cat.icon}` });
+      setToast({ id: Date.now(), text: `נוסף: ${money} ל${cat.name}` });
     }
     // make sure the new expense is on screen
     if (!rangeMonths(month, count).includes(data.date.slice(0, 7))) pickMonth(data.date.slice(0, 7));

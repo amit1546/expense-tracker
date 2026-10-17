@@ -63,7 +63,6 @@ export default function Charts({ rows, trend, inRange, count, onPickMonth, onTog
   const pieData = totalsByCategory(rows).map((d) => ({
     ...d,
     name: getCategory(d.category).name,
-    icon: getCategory(d.category).icon,
     color: getCategory(d.category).color,
     share: sum ? Math.round((d.total / sum) * 100) : 0,
   }));
@@ -108,7 +107,6 @@ export default function Charts({ rows, trend, inRange, count, onPickMonth, onTog
                 <li key={d.category}>
                   <button className="legend-item" style={{ '--chip': d.color }} onClick={() => onToggleCategory(d.category)}>
                     <span className="swatch" />
-                    <span aria-hidden="true">{d.icon}</span>
                     {d.name}
                     <strong className="num">{d.share}%</strong>
                   </button>
@@ -181,7 +179,6 @@ export default function Charts({ rows, trend, inRange, count, onPickMonth, onTog
           {usedCategories.map((c) => (
             <li key={c.id} className="legend-item static" style={{ '--chip': c.color }}>
               <span className="swatch" />
-              <span aria-hidden="true">{c.icon}</span>
               {c.name}
             </li>
           ))}

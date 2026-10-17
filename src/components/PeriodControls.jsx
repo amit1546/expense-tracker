@@ -18,7 +18,6 @@ export default function PeriodControls({ month, count, onMonth, onCount }) {
         {PERIODS.map((p) => (
           <button
             key={p.count}
-            className="secondary"
             aria-pressed={p.count === count}
             onClick={() => onCount(p.count)}
           >
@@ -28,11 +27,11 @@ export default function PeriodControls({ month, count, onMonth, onCount }) {
       </div>
       <div className="month-picker">
         {/* RTL: "previous" sits on the right */}
-        <button className="secondary" onClick={() => onMonth(shiftMonth(month, -count))} aria-label="תקופה קודמת">
+        <button onClick={() => onMonth(shiftMonth(month, -count))} aria-label="תקופה קודמת">
           ›
         </button>
         <span className="month-label">{label}</span>
-        <button className="secondary" onClick={() => onMonth(shiftMonth(month, count))} aria-label="תקופה הבאה">
+        <button onClick={() => onMonth(shiftMonth(month, count))} aria-label="תקופה הבאה">
           ‹
         </button>
       </div>

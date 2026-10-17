@@ -31,9 +31,7 @@ export default function ExpenseList({ expenses, highlightId, onEdit, onDelete })
                 <td>{formatDate(e.date)}</td>
                 <td>
                   <span className="chip" style={{ '--chip': cat.color }}>
-                    <span className="icon" aria-hidden="true">
-                      {cat.icon}
-                    </span>
+                    <span className="dot" />
                     {cat.name}
                   </span>
                 </td>

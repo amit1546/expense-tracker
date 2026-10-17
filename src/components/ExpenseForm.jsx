@@ -74,9 +74,7 @@ export default function ExpenseForm({ initial, onSubmit, onCancel }) {
             aria-pressed={category === c.id}
             onClick={() => setCategory(c.id)}
           >
-            <span className="icon" aria-hidden="true">
-              {c.icon}
-            </span>
+            <span className="dot" />
             {c.name}
           </button>
         ))}

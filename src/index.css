@@ -18,6 +18,7 @@
   --heading: #1e3a5f;
   --bg-glow: #dbe3ec;
   --good: #2f855a;
+  --btn: #1e3a5f;
   color-scheme: light;
 }
 
@@ -42,6 +43,7 @@
     --heading: #9cc3e6;
     --bg-glow: #13222f;
   --good: #5fd0a0;
+  --btn: #2f6fb0;
     color-scheme: dark;
   }
 }
@@ -66,6 +68,7 @@
   --heading: #9cc3e6;
   --bg-glow: #13222f;
   --good: #5fd0a0;
+  --btn: #2f6fb0;
   color-scheme: dark;
 }
 
@@ -75,7 +78,7 @@
 
 body {
   margin: 0;
-  background: linear-gradient(180deg, var(--bg-glow) 0, var(--bg) 320px) no-repeat, var(--bg);
+  background: var(--bg);
   color: var(--text);
   font-family: 'Heebo', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
   line-height: 1.5;
@@ -89,29 +92,14 @@ body {
   padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
 
-.app-header,
-.period-bar {
+.app-header {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
   margin-bottom: 16px;
-  padding: 18px 20px;
-  border-radius: 16px;
+  padding: 16px 20px;
+  border-radius: 12px;
   color: #fff;
-  background: linear-gradient(120deg, var(--g1), var(--g2) 55%, var(--g3));
-}
-
-.app-header .secondary,
-.period-bar .secondary {
-  color: #fff;
-  border-color: rgba(255, 255, 255, 0.55);
-}
-
-.app-header .secondary:hover:not(:disabled),
-.period-bar .secondary:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--g1);
 }
 
 h1 {
@@ -162,7 +150,7 @@ button {
   border: 1px solid transparent;
   border-radius: 8px;
   padding: 8px 14px;
-  background: linear-gradient(120deg, var(--g1), var(--g2));
+  background: var(--btn);
   color: #fff;
   cursor: pointer;
 }
@@ -226,27 +214,11 @@ select {
   margin: 0;
 }
 
-.month-picker {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.month-label {
-  min-width: 110px;
-  text-align: center;
-  font-weight: 600;
-}
-
 .total {
   font-size: 2.2rem;
   font-weight: 700;
   margin: 0;
-  color: var(--ta);
-  background: linear-gradient(120deg, var(--ta), var(--tb));
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--text);
 }
 
 .muted {
@@ -289,9 +261,9 @@ select {
   align-items: center;
   gap: 6px;
   padding: 2px 10px;
-  border-radius: 99px;
+  border-radius: 6px;
   font-size: 0.9rem;
-  background: color-mix(in srgb, var(--chip) 22%, transparent);
+  background: color-mix(in srgb, var(--chip) 16%, transparent);
   border: 1px solid color-mix(in srgb, var(--chip) 55%, transparent);
 }
 
@@ -420,27 +392,6 @@ select {
   margin-inline-start: 8px;
   padding: 0 8px;
   font-size: 0.8rem;
-}
-
-.controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-}
-
-.seg {
-  display: flex;
-  gap: 4px;
-}
-
-.app-header .secondary[aria-pressed='true'],
-.app-header .secondary[aria-pressed='true']:hover:not(:disabled),
-.period-bar .secondary[aria-pressed='true'],
-.period-bar .secondary[aria-pressed='true']:hover:not(:disabled) {
-  background: #fff;
-  color: #14304f;
-  border-color: #fff;
 }
 
 .filters {
@@ -573,20 +524,6 @@ select {
   }
 }
 
-.period-bar {
-  justify-content: center;
-  padding-block: 12px;
-}
-
-.icon {
-  font-size: 1em;
-  line-height: 1;
-}
-
-.chip .icon {
-  font-size: 0.95em;
-}
-
 .cat-picker {
   border: 0;
   padding: 0;
@@ -606,28 +543,28 @@ select {
 .cat-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  font-size: 1rem;
+  gap: 8px;
+  padding: 7px 14px;
+  font-size: 0.95rem;
   color: var(--text);
-  background: color-mix(in srgb, var(--chip) 14%, transparent);
-  border: 1px solid color-mix(in srgb, var(--chip) 45%, transparent);
-  border-radius: 99px;
-  transition: transform 0.12s ease, background 0.12s ease;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
 }
 
-.cat-btn .icon {
-  font-size: 1.15em;
+.cat-btn .dot {
+  background: var(--chip);
 }
 
 .cat-btn:hover {
-  transform: translateY(-1px);
+  background: var(--hover);
 }
 
 .cat-btn[aria-pressed='true'] {
-  background: color-mix(in srgb, var(--chip) 50%, transparent);
-  box-shadow: 0 0 0 2px var(--chip);
-  font-weight: 700;
+  background: color-mix(in srgb, var(--chip) 20%, transparent);
+  border-color: var(--chip);
+  box-shadow: inset 0 0 0 1px var(--chip);
+  font-weight: 600;
 }
 
 .lead {
@@ -687,8 +624,8 @@ button.legend-item:hover {
 
 .legend-item .swatch {
   width: 12px;
-  height: 12px;
-  border-radius: 4px;
+  height: 10px;
+  border-radius: 2px;
   background: var(--chip);
 }
 
@@ -700,20 +637,17 @@ button.legend-item:hover {
   max-width: calc(100% - 32px);
   margin-inline: auto;
   padding: 10px 18px;
-  border-radius: 99px;
+  border-radius: 8px;
   color: #fff;
-  font-weight: 600;
-  background: linear-gradient(120deg, var(--g1), var(--g2) 60%, var(--g3));
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  font-weight: 500;
+  background: var(--g1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
   animation: toast-in 0.25s ease-out;
 }
 
 .expense-table tr.flash td {
   animation: flash 1.6s ease-out;
-}
-
-.card {
-  animation: rise 0.35s ease-out both;
 }
 
 @keyframes toast-in {
@@ -726,27 +660,16 @@ button.legend-item:hover {
 @keyframes flash {
   0%,
   35% {
-    background: color-mix(in srgb, var(--pop) 35%, transparent);
-  }
-}
-
-@keyframes rise {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
+    background: color-mix(in srgb, var(--pop) 22%, transparent);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .toast,
-  .card,
   .expense-table tr.flash td {
     animation: none;
   }
 
-  .cat-btn {
-    transition: none;
-  }
 }
 
 /* SVG text anchors flip in RTL; keep chart internals LTR so axis labels sit on the correct side */
@@ -815,4 +738,63 @@ button.legend-item:hover {
     align-self: end;
     text-align: end;
   }
+}
+
+.period-bar {
+  margin-bottom: 16px;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.seg,
+.month-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.seg button,
+.month-picker button {
+  border: 0;
+  border-radius: 7px;
+  padding: 6px 14px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.seg button:hover,
+.month-picker button:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+
+.seg button[aria-pressed='true'],
+.seg button[aria-pressed='true']:hover {
+  background: var(--btn);
+  color: #fff;
+}
+
+.month-picker button {
+  font-size: 1.15rem;
+  line-height: 1;
+  padding: 6px 12px;
+  color: var(--text);
+}
+
+.month-label {
+  min-width: 120px;
+  padding: 0 10px;
+  text-align: center;
+  font-weight: 600;
 }

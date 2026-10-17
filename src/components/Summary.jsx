@@ -64,9 +64,7 @@ export default function Summary({ rows, count, series, prevTotal }) {
               <li key={category}>
                 <div className="line">
                   <span className="chip" style={{ '--chip': cat.color }}>
-                    <span className="icon" aria-hidden="true">
-                      {cat.icon}
-                    </span>
+                    <span className="dot" />
                     {cat.name}
                   </span>
                   <span className="num">
