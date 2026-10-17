@@ -11,7 +11,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { CATEGORIES, getCategory } from '../lib/categories.js';
+import { useCategories } from '../hooks/CategoriesContext.js';
 import { compactMoney, formatDate, formatMoney, formatMonth, formatMonthName } from '../lib/format.js';
 import { total, totalsByCategory } from '../lib/summary.js';
 
@@ -71,6 +71,7 @@ function BarTooltip({ active, payload, mode }) {
 // rows: expenses of the period; trend: series to stack by category (days of the month, or months);
 // inRange: months inside the period (month mode only)
 export default function Charts({ rows, trend, inRange, count, onPickMonth, onToggleCategory }) {
+  const { categories, getCategory } = useCategories();
   const mode = count === 1 ? 'days' : 'months';
   const xKey = mode === 'days' ? 'date' : 'month';
   const sum = total(rows);
@@ -80,7 +81,7 @@ export default function Charts({ rows, trend, inRange, count, onPickMonth, onTog
     color: getCategory(d.category).color,
     share: sum ? Math.round((d.total / sum) * 100) : 0,
   }));
-  const usedCategories = CATEGORIES.filter((c) => trend.some((m) => m[c.id] > 0));
+  const usedCategories = categories.filter((c) => trend.some((m) => m[c.id] > 0));
 
   return (
     <div className="charts">
@@ -156,7 +157,7 @@ export default function Charts({ rows, trend, inRange, count, onPickMonth, onTog
               tick={{ fill: 'var(--muted)', fontSize: 12 }}
             />
             <Tooltip content={<BarTooltip mode={mode} />} cursor={{ fill: 'var(--hover)', stroke: 'none' }} />
-            {CATEGORIES.map((c) => (
+            {categories.map((c) => (
               <Bar
                 key={c.id}
                 dataKey={c.id}

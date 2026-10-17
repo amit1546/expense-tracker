@@ -1,17 +1,19 @@
-import { isKnownCategory } from './categories.js';
+import { DEFAULT_CATEGORIES, FALLBACK_ID, lookup, normalizeCategories } from './categories.js';
 import { normalizeBudgets } from './budget.js';
 
-const EXPENSES_KEY = 'expense-tracker:v1:expenses';
-const RECURRING_KEY = 'expense-tracker:v1:recurring';
-const BUDGETS_KEY = 'expense-tracker:v1:budgets';
+const KEYS = {
+  expenses: 'expense-tracker:v1:expenses',
+  recurring: 'expense-tracker:v1:recurring',
+  budgets: 'expense-tracker:v1:budgets',
+  categories: 'expense-tracker:v1:categories',
+  meta: 'expense-tracker:v1:meta',
+};
 
 function read(key) {
   try {
-    const raw = localStorage.getItem(key);
-    const data = raw ? JSON.parse(raw) : [];
-    return Array.isArray(data) ? data : [];
+    return JSON.parse(localStorage.getItem(key));
   } catch {
-    return [];
+    return null;
   }
 }
 
@@ -23,20 +25,33 @@ function write(key, value) {
   }
 }
 
-// Categories that no longer exist (e.g. a removed one) are shown under "other".
-export const normalize = (e) => (isKnownCategory(e.category) ? e : { ...e, category: 'other' });
+const list = (key) => {
+  const data = read(key);
+  return Array.isArray(data) ? data : [];
+};
 
-export const loadExpenses = () => read(EXPENSES_KEY).map(normalize);
-export const saveExpenses = (expenses) => write(EXPENSES_KEY, expenses);
+export const loadCategories = () => normalizeCategories(read(KEYS.categories) ?? DEFAULT_CATEGORIES);
+export const saveCategories = (categories) => write(KEYS.categories, categories);
 
-export const loadRecurring = () => read(RECURRING_KEY).map(normalize);
-export const saveRecurring = (recurring) => write(RECURRING_KEY, recurring);
+// Items whose category no longer exists are shown under the fallback category.
+const withKnownCategory = (categories) => {
+  const known = lookup(categories);
+  return (item) => (known.has(item.category) ? item : { ...item, category: FALLBACK_ID });
+};
 
-export function loadBudgets() {
-  try {
-    return normalizeBudgets(JSON.parse(localStorage.getItem(BUDGETS_KEY)));
-  } catch {
-    return normalizeBudgets(null);
-  }
+export const loadExpenses = (categories) => list(KEYS.expenses).map(withKnownCategory(categories));
+export const saveExpenses = (expenses) => write(KEYS.expenses, expenses);
+
+export const loadRecurring = (categories) => list(KEYS.recurring).map(withKnownCategory(categories));
+export const saveRecurring = (recurring) => write(KEYS.recurring, recurring);
+
+export const loadBudgets = () => normalizeBudgets(read(KEYS.budgets));
+export const saveBudgets = (budgets) => write(KEYS.budgets, budgets);
+
+// { lastBackup, firstUse, snoozedUntil } as ISO dates; firstUse starts the clock for the first reminder.
+export function loadMeta(today) {
+  const m = read(KEYS.meta) ?? {};
+  const date = (v) => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null);
+  return { lastBackup: date(m.lastBackup), firstUse: date(m.firstUse) ?? today, snoozedUntil: date(m.snoozedUntil) };
 }
-export const saveBudgets = (budgets) => write(BUDGETS_KEY, budgets);
+export const saveMeta = (meta) => write(KEYS.meta, meta);

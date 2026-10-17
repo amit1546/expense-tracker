@@ -1,7 +1,8 @@
-import { getCategory } from '../lib/categories.js';
+import { useCategories } from '../hooks/CategoriesContext.js';
 import { formatDate, formatMoney } from '../lib/format.js';
 
-export default function ExpenseList({ expenses, highlightId, emptyText, onEdit, onDelete }) {
+export default function ExpenseList({ expenses, highlightId, emptyText, onEdit, onDuplicate, onDelete }) {
+  const { getCategory } = useCategories();
   if (expenses.length === 0) {
     return <p className="empty">{emptyText}</p>;
   }
@@ -39,6 +40,11 @@ export default function ExpenseList({ expenses, highlightId, emptyText, onEdit, 
                   <button className="link" onClick={() => onEdit(e)}>
                     עריכה
                   </button>
+                  {!e.recurring && (
+                    <button className="link" onClick={() => onDuplicate(e)}>
+                      שכפול
+                    </button>
+                  )}
                   <button className="link danger" onClick={() => onDelete(e)}>
                     {e.recurring ? 'הפסקה' : 'מחיקה'}
                   </button>

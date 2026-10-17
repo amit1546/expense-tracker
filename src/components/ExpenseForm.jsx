@@ -1,12 +1,15 @@
 import { useRef, useState } from 'react';
-import { CATEGORIES } from '../lib/categories.js';
+import { useCategories } from '../hooks/CategoriesContext.js';
 import { parseAmount, todayISO } from '../lib/format.js';
 
-export default function ExpenseForm({ initial, onSubmit, onCancel }) {
-  const [amount, setAmount] = useState(initial ? String(initial.amount) : '');
+// initial: an expense being edited. prefill: values to start a new expense from (a duplicate).
+export default function ExpenseForm({ initial, prefill, onSubmit, onCancel }) {
+  const { categories } = useCategories();
+  const seed = initial ?? prefill;
+  const [amount, setAmount] = useState(seed ? String(seed.amount) : '');
   const [date, setDate] = useState(initial?.date ?? todayISO());
-  const [category, setCategory] = useState(initial?.category ?? CATEGORIES[0].id);
-  const [description, setDescription] = useState(initial?.description ?? '');
+  const [category, setCategory] = useState(seed?.category ?? categories[0].id);
+  const [description, setDescription] = useState(seed?.description ?? '');
   const [isRecurring, setIsRecurring] = useState(false);
   const [error, setError] = useState('');
   const amountRef = useRef(null);
@@ -57,7 +60,7 @@ export default function ExpenseForm({ initial, onSubmit, onCancel }) {
       <label>
         קטגוריה
         <select value={category} onChange={(e) => setCategory(e.target.value)}>
-          {CATEGORIES.map((c) => (
+          {categories.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
             </option>

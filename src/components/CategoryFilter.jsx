@@ -1,10 +1,11 @@
-import { CATEGORIES } from '../lib/categories.js';
+import { useCategories } from '../hooks/CategoriesContext.js';
 
 export default function CategoryFilter({ selected, onToggle, onClear }) {
+  const { categories } = useCategories();
   return (
     <div className="filters" role="group" aria-label="סינון לפי קטגוריה">
       <span className="muted">הצג רק:</span>
-      {CATEGORIES.map((c) => {
+      {categories.map((c) => {
         const on = selected.includes(c.id);
         return (
           <button

@@ -42,8 +42,8 @@
     --tb: #5fd0b8;
     --heading: #9cc3e6;
     --bg-glow: #13222f;
-  --good: #5fd0a0;
-  --btn: #2f6fb0;
+    --good: #5fd0a0;
+    --btn: #2f6fb0;
     color-scheme: dark;
   }
 }
@@ -80,7 +80,13 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: 'Heebo', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+  font-family:
+    'Heebo',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Arial,
+    sans-serif;
   line-height: 1.5;
 }
 
@@ -113,7 +119,6 @@ h2 {
   font-size: 1.15rem;
   color: var(--heading);
 }
-
 
 h3 {
   margin: 0 0 8px;
@@ -361,8 +366,6 @@ select {
   gap: 4px;
   color: var(--danger);
 }
-
-
 
 :focus-visible {
   outline: 2px solid var(--accent);
@@ -613,7 +616,6 @@ button.legend-item:hover {
   .expense-table tr.flash td {
     animation: none;
   }
-
 }
 
 /* SVG text anchors flip in RTL; keep chart internals LTR so axis labels sit on the correct side */
@@ -912,4 +914,79 @@ button.legend-item:hover {
   text-decoration: underline;
   margin-inline-start: 14px;
   padding: 0;
+}
+
+/* reminder, categories */
+.reminder {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 16px;
+  padding: 10px 16px;
+  border: 1px solid var(--pop);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--pop) 12%, var(--card));
+}
+
+.reminder .actions button {
+  padding: 6px 12px;
+}
+
+.cat-list {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.cat-row,
+.cat-add {
+  display: grid;
+  grid-template-columns: auto 1fr 2ch 3.4rem;
+  align-items: center;
+  gap: 10px;
+}
+
+.cat-add {
+  grid-template-columns: auto 1fr auto;
+}
+
+.cat-row input[type='text'],
+.cat-add input[type='text'] {
+  min-width: 0;
+}
+
+input[type='color'] {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+}
+
+input[type='color']::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+input[type='color']::-webkit-color-swatch {
+  border: 0;
+  border-radius: 50%;
+}
+
+input[type='color']::-moz-color-swatch {
+  border: 0;
+  border-radius: 50%;
+}
+
+.cat-manager h2 {
+  margin-bottom: 12px;
+}
+
+.backup .muted {
+  flex: 1 1 auto;
 }

@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { filterAndSort } from './list.js';
+import { filterAndSort as search } from './list.js';
+
+const names = { food: 'אוכל', bills: 'חשבונות' };
+const filterAndSort = (rows, opts = {}) => search(rows, { categoryName: (id) => names[id] ?? id, ...opts });
 
 const rows = [
   { id: 'a', amount: 50, date: '2026-10-03', category: 'food', description: 'פיצה' },

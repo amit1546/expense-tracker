@@ -1,25 +1,34 @@
 import { useEffect, useState } from 'react';
-import { loadBudgets, loadExpenses, loadRecurring, saveBudgets, saveExpenses, saveRecurring } from '../lib/storage.js';
+import {
+  loadBudgets,
+  loadCategories,
+  loadExpenses,
+  loadMeta,
+  loadRecurring,
+  saveBudgets,
+  saveCategories,
+  saveExpenses,
+  saveMeta,
+  saveRecurring,
+} from '../lib/storage.js';
+import { insertCategory, newCategoryId, removeCategoryFrom } from '../lib/categories.js';
 import { shiftMonth } from '../lib/summary.js';
+import { todayISO } from '../lib/format.js';
 import { newId } from '../lib/id.js';
 
 // Mutations that can be undone return a function that undoes them.
 export function useExpenses() {
-  const [expenses, setExpenses] = useState(loadExpenses);
-  const [recurring, setRecurring] = useState(loadRecurring);
+  const [categories, setCategories] = useState(loadCategories);
+  const [expenses, setExpenses] = useState(() => loadExpenses(categories));
+  const [recurring, setRecurring] = useState(() => loadRecurring(categories));
   const [budgets, setBudgets] = useState(loadBudgets);
+  const [meta, setMeta] = useState(() => loadMeta(todayISO()));
 
-  useEffect(() => {
-    saveExpenses(expenses);
-  }, [expenses]);
-
-  useEffect(() => {
-    saveRecurring(recurring);
-  }, [recurring]);
-
-  useEffect(() => {
-    saveBudgets(budgets);
-  }, [budgets]);
+  useEffect(() => saveCategories(categories), [categories]);
+  useEffect(() => saveExpenses(expenses), [expenses]);
+  useEffect(() => saveRecurring(recurring), [recurring]);
+  useEffect(() => saveBudgets(budgets), [budgets]);
+  useEffect(() => saveMeta(meta), [meta]);
 
   const add = (expense) => {
     const id = newId();
@@ -78,22 +87,43 @@ export function useExpenses() {
     return () => revertRecurring(before, [tailId]);
   };
 
+  // Everything that a backup holds, replaced in one go.
+  const restoreAll = (state) => {
+    setCategories(state.categories);
+    setExpenses(state.expenses);
+    setRecurring(state.recurring);
+    setBudgets(state.budgets);
+  };
+  const snapshot = () => ({ categories, expenses, recurring, budgets });
+
   const replaceAll = (next) => {
-    const previous = { expenses, recurring, budgets };
-    setExpenses(next.expenses);
-    setRecurring(next.recurring);
-    setBudgets(next.budgets);
-    return () => {
-      setExpenses(previous.expenses);
-      setRecurring(previous.recurring);
-      setBudgets(previous.budgets);
-    };
+    const previous = snapshot();
+    restoreAll(next);
+    return () => restoreAll(previous);
   };
 
+  const addCategory = (name, color) => {
+    const id = newCategoryId();
+    setCategories((list) => insertCategory(list, { id, name: name.trim(), color }));
+    return id;
+  };
+  const updateCategory = (id, changes) =>
+    setCategories((list) => list.map((c) => (c.id === id ? { ...c, ...changes } : c)));
+  const removeCategory = (id) => {
+    const previous = snapshot();
+    restoreAll(removeCategoryFrom(previous, id));
+    return () => restoreAll(previous);
+  };
+
+  const markBackedUp = () => setMeta((m) => ({ ...m, lastBackup: todayISO(), snoozedUntil: null }));
+  const snoozeReminder = (until) => setMeta((m) => ({ ...m, snoozedUntil: until }));
+
   return {
+    categories,
     expenses,
     recurring,
     budgets,
+    meta,
     setBudgets,
     add,
     update,
@@ -102,5 +132,10 @@ export function useExpenses() {
     stopRecurring,
     editRecurringFrom,
     replaceAll,
+    addCategory,
+    updateCategory,
+    removeCategory,
+    markBackedUp,
+    snoozeReminder,
   };
 }

@@ -10,21 +10,29 @@ const FOUR_AGO = ym(new Date(NOW.getFullYear(), NOW.getMonth() - 4, 1));
 const food = { id: 'a', amount: 1800, date: `${CUR}-05`, category: 'food', description: 'סופר' };
 const bills = { id: 'b', amount: 400, date: `${CUR}-09`, category: 'bills', description: 'חשמל' };
 const fun = { id: 'c', amount: 90, date: `${CUR}-11`, category: 'fun', description: 'קולנוע' };
+const TODAY = `${CUR}-${String(NOW.getDate()).padStart(2, '0')}`;
+const daysAgo = (n) => {
+  const d = new Date(NOW);
+  d.setDate(d.getDate() - n);
+  return `${ym(d)}-${String(d.getDate()).padStart(2, '0')}`;
+};
 const gym = { id: 'r1', amount: 200, category: 'health', description: 'חדר כושר', day: 3, startMonth: PREV };
 
 // Loads the app with data already in localStorage (seeded once, so reloads keep what the test did).
-async function open(page, { expenses = [], recurring = [], budgets = null } = {}) {
+async function open(page, { expenses = [], recurring = [], budgets = null, categories = null, meta = null } = {}) {
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.addInitScript(
-    ([e, r, b]) => {
+    ([e, r, b, c, m]) => {
       if (sessionStorage.getItem('seeded')) return;
       sessionStorage.setItem('seeded', '1');
       localStorage.setItem('expense-tracker:v1:expenses', JSON.stringify(e));
       localStorage.setItem('expense-tracker:v1:recurring', JSON.stringify(r));
       if (b) localStorage.setItem('expense-tracker:v1:budgets', JSON.stringify(b));
+      if (c) localStorage.setItem('expense-tracker:v1:categories', JSON.stringify(c));
+      if (m) localStorage.setItem('expense-tracker:v1:meta', JSON.stringify(m));
     },
-    [expenses, recurring, budgets],
+    [expenses, recurring, budgets, categories, meta],
   );
   await page.goto('/');
   return errors;
@@ -266,5 +274,138 @@ test.describe('data safety', () => {
     await addExpense(page, { amount: '60', description: 'נשמר' });
     await page.reload();
     await expect(rowFor(page, 'נשמר')).toHaveCount(1);
+  });
+});
+
+test.describe('duplicate', () => {
+  test('copies amount, category and description into the form with today\'s date', async ({ page }) => {
+    await open(page, { expenses: [food] });
+    await rowFor(page, 'סופר').locator('button', { hasText: 'שכפול' }).click();
+    await expect(amountField(page)).toHaveValue('1800');
+    await expect(form(page).locator('select')).toHaveValue('food');
+    await expect(form(page).locator('input[placeholder^="למשל"]')).toHaveValue('סופר');
+    await expect(form(page).locator('input[type=date]')).toHaveValue(TODAY);
+    await form(page).locator('button[type=submit]').click();
+    await expect(rowFor(page, 'סופר')).toHaveCount(2);
+    await expect(amountField(page)).toHaveValue('');
+  });
+
+  test('cancel empties the form, and recurring rows have no duplicate button', async ({ page }) => {
+    await open(page, { expenses: [food], recurring: [gym] });
+    await expect(rowFor(page, 'חדר כושר').locator('button', { hasText: 'שכפול' })).toHaveCount(0);
+    await rowFor(page, 'סופר').locator('button', { hasText: 'שכפול' }).click();
+    await form(page).locator('button', { hasText: 'ביטול' }).click();
+    await expect(amountField(page)).toHaveValue('');
+  });
+});
+
+test.describe('weekly backup reminder', () => {
+  const stale = { lastBackup: daysAgo(10), firstUse: daysAgo(60), snoozedUntil: null };
+
+  test('appears after a week and says how long it has been', async ({ page }) => {
+    await open(page, { expenses: [food], meta: stale });
+    await expect(page.locator('.reminder')).toContainText('10 ימים');
+  });
+
+  test('stays away without data, and when the last backup is recent', async ({ page }) => {
+    await open(page, { meta: stale });
+    await expect(page.locator('.reminder')).toHaveCount(0);
+    const page2 = await page.context().newPage();
+    await open(page2, { expenses: [food], meta: { lastBackup: daysAgo(3), firstUse: daysAgo(60), snoozedUntil: null } });
+    await expect(page2.locator('.reminder')).toHaveCount(0);
+  });
+
+  test('"remind me in a week" hides it and it stays hidden after a reload', async ({ page }) => {
+    await open(page, { expenses: [food], meta: stale });
+    await page.locator('.reminder button', { hasText: 'בעוד שבוע' }).click();
+    await expect(page.locator('.reminder')).toHaveCount(0);
+    await page.reload();
+    await expect(page.locator('.reminder')).toHaveCount(0);
+  });
+
+  test('backing up from the banner saves a file, hides it and records the date', async ({ page }) => {
+    await open(page, { expenses: [food], meta: stale });
+    const [download] = await Promise.all([page.waitForEvent('download'), page.locator('.reminder button', { hasText: 'גיבוי עכשיו' }).click()]);
+    expect(download).toBeTruthy();
+    await expect(page.locator('.reminder')).toHaveCount(0);
+    await expect(page.locator('.backup')).toContainText('הגיבוי האחרון');
+    await page.reload();
+    await expect(page.locator('.reminder')).toHaveCount(0);
+  });
+
+  test('a first-time user is not nagged on the first day', async ({ page }) => {
+    await open(page);
+    await addExpense(page, { amount: '10', description: 'ראשון' });
+    await expect(page.locator('.reminder')).toHaveCount(0);
+    await expect(page.locator('.backup')).toContainText('עוד לא בוצע גיבוי');
+  });
+});
+
+test.describe('custom categories', () => {
+  const manager = (page) => page.locator('.cat-manager');
+
+  test('a new category shows up in the form, the filter, the budget editor and the charts legend', async ({ page }) => {
+    await open(page);
+    await manager(page).locator('input[aria-label="שם קטגוריה חדשה"]').fill('ספרים');
+    await manager(page).locator('button[type=submit]').click();
+    await expect(form(page).locator('select option', { hasText: 'ספרים' })).toHaveCount(1);
+    await expect(page.locator('.filters button', { hasText: 'ספרים' })).toHaveCount(1);
+    await addExpense(page, { amount: '80', category: await form(page).locator('select option', { hasText: 'ספרים' }).getAttribute('value'), description: 'רומן' });
+    await expect(rowFor(page, 'רומן').locator('.chip')).toContainText('ספרים');
+    await expect(page.locator('.category-list')).toContainText('ספרים');
+    await page.locator('.summary-head button').click();
+    await expect(page.locator('.budget-grid')).toContainText('ספרים');
+  });
+
+  test('rename and recolor apply everywhere', async ({ page }) => {
+    await open(page, { expenses: [food] });
+    const nameInput = manager(page).locator('input[aria-label="שם הקטגוריה אוכל"]');
+    await nameInput.fill('מזון');
+    await nameInput.press('Enter');
+    await expect(rowFor(page, 'סופר').locator('.chip')).toContainText('מזון');
+    await expect(form(page).locator('select option[value=food]')).toHaveText('מזון');
+    await manager(page).locator('input[type=color][aria-label="צבע לאוכל"], input[type=color][aria-label="צבע למזון"]').first().fill('#112233');
+    const color = await rowFor(page, 'סופר').locator('.chip').evaluate((el) => el.style.getPropertyValue('--chip'));
+    expect(color).toBe('#112233');
+  });
+
+  test('refuses an empty or duplicate name', async ({ page }) => {
+    await open(page);
+    await manager(page).locator('button[type=submit]').click();
+    await expect(manager(page).locator('.error')).toContainText('שם');
+    await manager(page).locator('input[aria-label="שם קטגוריה חדשה"]').fill('אוכל');
+    await manager(page).locator('button[type=submit]').click();
+    await expect(manager(page).locator('.error')).toContainText('כבר יש');
+    await expect(form(page).locator('select option')).toHaveCount(7);
+  });
+
+  test('deleting moves its expenses to "other" and can be undone; "other" cannot be deleted', async ({ page }) => {
+    await open(page, { expenses: [food, bills] });
+    await expect(manager(page).locator('.cat-row', { has: page.locator('input[aria-label="שם הקטגוריה אחר"]') }).locator('button')).toHaveCount(0);
+    await manager(page).locator('.cat-row', { has: page.locator('input[aria-label="שם הקטגוריה אוכל"]') }).locator('button', { hasText: 'מחיקה' }).click();
+    await expect(form(page).locator('select option[value=food]')).toHaveCount(0);
+    await expect(rowFor(page, 'סופר').locator('.chip')).toContainText('אחר');
+    await page.locator('.toast button').click();
+    await expect(form(page).locator('select option[value=food]')).toHaveCount(1);
+    await expect(rowFor(page, 'סופר').locator('.chip')).toContainText('אוכל');
+  });
+
+  test('a custom category survives a backup and restore', async ({ page }, testInfo) => {
+    const categories = [
+      { id: 'c_books', name: 'ספרים', color: '#4e79a7' },
+      { id: 'other', name: 'אחר', color: '#7b8794' },
+    ];
+    await open(page, { categories, expenses: [{ id: 'k', amount: 55, date: TODAY, category: 'c_books', description: 'רומן' }] });
+    const [download] = await Promise.all([page.waitForEvent('download'), page.locator('button', { hasText: 'שמירת גיבוי' }).click()]);
+    const file = testInfo.outputPath('cats-backup.json');
+    await download.saveAs(file);
+    expect(JSON.parse(fs.readFileSync(file, 'utf8')).categories.map((c) => c.id)).toEqual(['c_books', 'other']);
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+    await expect(form(page).locator('select option')).toHaveCount(7);
+    await page.setInputFiles('input[type=file]', file);
+    await page.locator('.confirm-row button', { hasText: 'שחזור' }).click();
+    await expect(form(page).locator('select option')).toHaveCount(2);
+    await expect(rowFor(page, 'רומן').locator('.chip')).toContainText('ספרים');
   });
 });

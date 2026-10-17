@@ -1,4 +1,4 @@
-import { normalize } from './storage.js';
+import { DEFAULT_CATEGORIES, FALLBACK_ID, lookup, normalizeCategories } from './categories.js';
 import { normalizeBudgets } from './budget.js';
 import { newId } from './id.js';
 
@@ -10,48 +10,42 @@ export function backupFilename(isoDate) {
   return `מעקב הוצאות ${isoDate}.json`;
 }
 
-export function makeBackup({ expenses, recurring, budgets }, now = new Date()) {
+export function makeBackup({ expenses, recurring, budgets, categories }, now = new Date()) {
   return JSON.stringify(
-    { app: 'expense-tracker', version: 1, savedAt: now.toISOString(), expenses, recurring, budgets },
+    { app: 'expense-tracker', version: 2, savedAt: now.toISOString(), categories, expenses, recurring, budgets },
     null,
     2,
   );
 }
 
-const asExpense = (e) =>
-  normalize({
-    id: typeof e.id === 'string' ? e.id : newId(),
-    amount: e.amount,
-    date: e.date,
-    category: e.category,
-    description: typeof e.description === 'string' ? e.description : '',
-  });
-
-const asRecurring = (r) => {
-  const item = normalize({
-    id: typeof r.id === 'string' ? r.id : newId(),
-    amount: r.amount,
-    category: r.category,
-    description: typeof r.description === 'string' ? r.description : '',
-    day: r.day,
-    startMonth: r.startMonth,
-  });
-  return MONTH.test(r.endMonth ?? '') ? { ...item, endMonth: r.endMonth } : item;
-};
+const text = (v) => (typeof v === 'string' ? v : '');
 
 // Throws an Error with a user-facing Hebrew message when the text is not one of our backups.
-export function parseBackup(text) {
+// Older files (version 1) have no categories; they get the default ones.
+export function parseBackup(raw) {
   let data;
   try {
-    data = JSON.parse(text);
+    data = JSON.parse(raw);
   } catch {
     throw new Error('הקובץ אינו קובץ גיבוי תקין');
   }
   if (data?.app !== 'expense-tracker' || !Array.isArray(data.expenses) || !Array.isArray(data.recurring)) {
     throw new Error('הקובץ אינו קובץ גיבוי של מעקב הוצאות');
   }
+  const categories = Array.isArray(data.categories) ? normalizeCategories(data.categories) : DEFAULT_CATEGORIES;
+  const known = lookup(categories);
+  const category = (c) => (known.has(c) ? c : FALLBACK_ID);
   return {
-    expenses: data.expenses.filter((e) => isMoney(e?.amount) && DATE.test(e?.date ?? '')).map(asExpense),
+    categories,
+    expenses: data.expenses
+      .filter((e) => isMoney(e?.amount) && DATE.test(e?.date ?? ''))
+      .map((e) => ({
+        id: typeof e.id === 'string' ? e.id : newId(),
+        amount: e.amount,
+        date: e.date,
+        category: category(e.category),
+        description: text(e.description),
+      })),
     recurring: data.recurring
       .filter(
         (r) =>
@@ -61,7 +55,36 @@ export function parseBackup(text) {
           r.day <= 31 &&
           MONTH.test(r?.startMonth ?? ''),
       )
-      .map(asRecurring),
+      .map((r) => ({
+        id: typeof r.id === 'string' ? r.id : newId(),
+        amount: r.amount,
+        category: category(r.category),
+        description: text(r.description),
+        day: r.day,
+        startMonth: r.startMonth,
+        ...(MONTH.test(r.endMonth ?? '') ? { endMonth: r.endMonth } : {}),
+      })),
     budgets: normalizeBudgets(data.budgets),
   };
+}
+
+// ---- weekly backup reminder
+const DAY = 86_400_000;
+const utc = (iso) => Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10));
+
+export const daysBetween = (fromIso, toIso) => Math.round((utc(toIso) - utc(fromIso)) / DAY);
+
+export function addDays(iso, n) {
+  const d = new Date(utc(iso) + n * DAY);
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+}
+
+// meta: { lastBackup, firstUse, snoozedUntil } (ISO dates or null). Returns null when nothing is due, else
+// { never, days }: `days` since the last backup (or since first use when there was never one).
+export function backupReminder(meta, today, hasData) {
+  if (!hasData) return null;
+  if (meta.snoozedUntil && today < meta.snoozedUntil) return null;
+  const since = meta.lastBackup ?? meta.firstUse ?? today;
+  const days = daysBetween(since, today);
+  return days >= 7 ? { never: !meta.lastBackup, days } : null;
 }

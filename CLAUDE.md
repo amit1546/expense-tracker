@@ -17,15 +17,17 @@ Hebrew (RTL) expense tracker. React 18 + Vite + Recharts, data in `localStorage`
 - `src/lib/` – pure logic: `summary.js` (periods, recurring expansion, per-month and per-day series), `budget.js`,
   `list.js` (search and sort), `backup.js` (export/import format), `storage.js`, `categories.js`, `format.js`,
   `files.js` (saving a file), `id.js`. Keep new calculations here, with tests.
+- `src/hooks/CategoriesContext.js` – components read the category list and `getCategory(id)` from `useCategories()`; pure `src/lib` code takes categories (or a name function) as an argument, never a global.
 - `src/hooks/useExpenses.js` – state for expenses, recurring items and budgets, persisted through `storage.js`. Mutations that
   can be undone return an undo function; the toast shows it as a "ביטול" button.
-- `src/components/` – `ExpenseForm` (top of the page), `PeriodControls` (a segmented control plus month arrows, right under the form), `CategoryFilter`, `Summary` (with `BudgetEditor`), `Charts`, `ListControls` + `ExpenseList`, `BackupCard`.
+- `src/components/` – `ExpenseForm` (top of the page), `PeriodControls` (a segmented control plus month arrows, right under the form), `CategoryFilter`, `Summary` (with `BudgetEditor`), `Charts`, `ListControls` + `ExpenseList`, `CategoryManager`, `BackupCard`, `BackupReminder`.
 
 ## Data model
 - Expense: `{ id, amount, date: 'YYYY-MM-DD', category, description }`
 - Recurring item: `{ id, amount, category, description, day, startMonth: 'YYYY-MM', endMonth? }`. It is not copied into
   the expense list; `recurringIn()` expands it into virtual rows (`recurring: true`) for each month it covers.
-- Categories that no longer exist (e.g. the removed "housing") are loaded as `other` (`storage.js`).
+- Categories are user-editable `{ id, name, color }` (default ids are food/transport/bills/fun/health/shopping/other; new ones get `c_xxxxxxxx`). The `other` category is the fallback: it can be renamed and recoloured but not deleted, always sits last, and receives the expenses of any deleted or unknown category (`removeCategoryFrom`, `storage.js`, `backup.js`). Deleting a category is undoable and also drops its budget.
+- App-level state is `{ lastBackup, firstUse, snoozedUntil }` in `…:meta`.
 
 ## Decisions so far
 - Periods are month / 6 months / year, counted back from the selected month; the arrows move a whole period.
@@ -38,6 +40,8 @@ Hebrew (RTL) expense tracker. React 18 + Vite + Recharts, data in `localStorage`
 - Editing a recurring item applies from the edited row's month on: the old item ends the month before and a new one continues it (`editRecurringFrom`). Earlier months keep their history.
 - Budgets are monthly amounts (a total plus optional per-category ones) multiplied by the months in the period. 'ok' under 80%, 'warn' from 80%, 'over' past the limit. The total-budget bar is hidden while a category filter is active.
 - The list has search (description, category name, amount) and sort; they only affect the list, not totals or charts.
+- Duplicating an expense ("שכפול") puts its amount, category and description in the form with today's date; it is a normal add, not an edit. Recurring rows have no duplicate button.
+- Weekly backup reminder (`backupReminder`): a banner at the top, shown when there is data and a week has passed since the last backup (or since first use if there never was one). "הזכר לי בעוד שבוע" hides it for 7 days. It can only appear while the app is open; there are no push notifications.
 - Backup is a JSON file named `מעקב הוצאות YYYY-MM-DD.json` (`backup.js`). Restoring replaces everything, after an inline confirmation, and can be undone from the toast. There is no Telegram integration: the user sends the file to themselves.
 - Palette is navy / steel / teal with an amber highlight, defined as CSS tokens at the top of `src/index.css`
   (light, `prefers-color-scheme: dark`, and `[data-theme='dark']`). Use tokens, not literal colors.
@@ -50,6 +54,5 @@ The viewer blocks `window.confirm` and direct file downloads, so:
 - data lives in that viewer's browser only (no sync between devices).
 
 ## Ideas not done yet
-Automatic sync across devices (the `db` capability would do it), quick-add buttons for repeated expenses, custom
-categories, bank CSV import, Apple Pay capture (needs a regular hosted site: iOS Shortcuts "Transaction" automation opening a
+Automatic sync across devices (the `db` capability would do it), end-of-month forecast, bank CSV import, Apple Pay capture (needs a regular hosted site: iOS Shortcuts "Transaction" automation opening a
 prefilled link; the Artifact page can't receive URL parameters).

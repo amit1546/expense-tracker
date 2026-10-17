@@ -1,14 +1,15 @@
 import { useState } from 'react';
-import { CATEGORIES } from '../lib/categories.js';
+import { useCategories } from '../hooks/CategoriesContext.js';
 import { parseAmount } from '../lib/format.js';
 
 const toText = (n) => (n ? String(n) : '');
 
 // Monthly amounts. An empty field means "no budget". Longer periods multiply them by the months in the period.
 export default function BudgetEditor({ budgets, onSave, onCancel }) {
+  const { categories } = useCategories();
   const [total, setTotal] = useState(toText(budgets.total));
   const [byCategory, setByCategory] = useState(() =>
-    Object.fromEntries(CATEGORIES.map((c) => [c.id, toText(budgets.categories[c.id])])),
+    Object.fromEntries(categories.map((c) => [c.id, toText(budgets.categories[c.id])])),
   );
   const [error, setError] = useState('');
 
@@ -17,15 +18,15 @@ export default function BudgetEditor({ budgets, onSave, onCancel }) {
     const parse = (text) => (text.trim() === '' ? null : parseAmount(text));
     const values = {
       total: parse(total),
-      ...Object.fromEntries(CATEGORIES.map((c) => [c.id, parse(byCategory[c.id])])),
+      ...Object.fromEntries(categories.map((c) => [c.id, parse(byCategory[c.id] ?? '')])),
     };
     if (Object.values(values).some((v) => v !== null && !(v > 0))) {
       setError('יש להזין סכומים חיוביים, או להשאיר ריק');
       return;
     }
-    const categories = {};
-    for (const c of CATEGORIES) if (values[c.id]) categories[c.id] = values[c.id];
-    onSave({ total: values.total, categories });
+    const limits = {};
+    for (const c of categories) if (values[c.id]) limits[c.id] = values[c.id];
+    onSave({ total: values.total, categories: limits });
   };
 
   return (
@@ -42,7 +43,7 @@ export default function BudgetEditor({ budgets, onSave, onCancel }) {
         />
       </label>
       <div className="budget-grid">
-        {CATEGORIES.map((c) => (
+        {categories.map((c) => (
           <label key={c.id}>
             <span>
               <span className="dot" style={{ background: c.color }} />
@@ -53,7 +54,7 @@ export default function BudgetEditor({ budgets, onSave, onCancel }) {
               inputMode="decimal"
               autoComplete="off"
               placeholder="ללא"
-              value={byCategory[c.id]}
+              value={byCategory[c.id] ?? ''}
               onChange={(e) => setByCategory((m) => ({ ...m, [c.id]: e.target.value }))}
             />
           </label>

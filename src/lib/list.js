@@ -1,5 +1,3 @@
-import { getCategory } from './categories.js';
-
 export const SORTS = [
   { id: 'date-desc', label: 'תאריך: מהחדש לישן' },
   { id: 'date-asc', label: 'תאריך: מהישן לחדש' },
@@ -15,10 +13,11 @@ const COMPARE = {
 };
 
 // Search matches the description, the category name and the amount.
-export function filterAndSort(rows, { query = '', sort = 'date-desc' } = {}) {
+// categoryName(id) gives the display name of a category.
+export function filterAndSort(rows, { query = '', sort = 'date-desc', categoryName = (id) => id } = {}) {
   const q = query.trim().toLowerCase();
   const matches = q
-    ? rows.filter((r) => `${r.description} ${getCategory(r.category).name} ${r.amount}`.toLowerCase().includes(q))
+    ? rows.filter((r) => `${r.description} ${categoryName(r.category)} ${r.amount}`.toLowerCase().includes(q))
     : [...rows];
   return matches.sort(COMPARE[sort] ?? COMPARE['date-desc']);
 }

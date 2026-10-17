@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { getCategory } from '../lib/categories.js';
+import { useCategories } from '../hooks/CategoriesContext.js';
 import { formatMoney, formatMonth } from '../lib/format.js';
 import { total, totalsByCategory } from '../lib/summary.js';
 import { budgetStatus } from '../lib/budget.js';
@@ -13,6 +13,7 @@ const BUDGET_TITLES = { 1: 'תקציב חודשי', 6: 'תקציב ל-6 חודש
 // rows: every expense in the period; series: one entry per month of the period; prevTotal: the period before it
 // budgets: monthly amounts, multiplied here by the number of months in the period
 export default function Summary({ rows, count, series, prevTotal, filterNames, onClearFilter, budgets, onBudgets }) {
+  const { getCategory } = useCategories();
   const [editingBudget, setEditingBudget] = useState(false);
   const filtered = filterNames.length > 0;
   const sum = total(rows);

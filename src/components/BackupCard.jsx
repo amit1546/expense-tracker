@@ -1,19 +1,16 @@
 import { useRef, useState } from 'react';
-import { backupFilename, makeBackup, parseBackup } from '../lib/backup.js';
-import { todayISO } from '../lib/format.js';
-import { saveTextFile } from '../lib/files.js';
+import { parseBackup } from '../lib/backup.js';
+import { formatDate } from '../lib/format.js';
 
-// data: { expenses, recurring, budgets }; onRestore(parsed) replaces everything; notify(text) shows a toast
-export default function BackupCard({ data, onRestore, notify }) {
+// onSave() saves a backup file and resolves 'saved' | 'declined' | 'unavailable'; onRestore(parsed) replaces everything
+export default function BackupCard({ lastBackup, onSave, onRestore }) {
   const fileRef = useRef(null);
   const [pending, setPending] = useState(null);
   const [error, setError] = useState('');
 
   const save = async () => {
     setError('');
-    const result = await saveTextFile(backupFilename(todayISO()), makeBackup(data));
-    if (result === 'saved') notify('הגיבוי נשמר');
-    else if (result === 'unavailable') setError('שמירת קבצים לא זמינה כאן');
+    if ((await onSave()) === 'unavailable') setError('שמירת קבצים לא זמינה כאן');
   };
 
   const choose = async (e) => {
@@ -32,6 +29,7 @@ export default function BackupCard({ data, onRestore, notify }) {
   return (
     <div className="backup">
       <h2>גיבוי הנתונים</h2>
+      <span className="muted">{lastBackup ? `הגיבוי האחרון: ${formatDate(lastBackup)}` : 'עוד לא בוצע גיבוי'}</span>
       <div className="actions">
         <button className="secondary" onClick={save}>
           שמירת גיבוי
