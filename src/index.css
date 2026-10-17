@@ -941,9 +941,8 @@ button.legend-item:hover {
   gap: 8px 10px;
 }
 
-.cat-add h2 {
-  margin: 0 0 0 4px;
-  font-size: 1rem;
+.cat-add .muted {
+  font-size: 0.85rem;
 }
 
 .cat-add input[type='text'] {
@@ -985,7 +984,43 @@ input[type='color']::-moz-color-swatch {
   border-radius: 50%;
 }
 
-
 .backup .muted {
   flex: 1 1 auto;
+}
+
+.app-header {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sync {
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+.sync.error {
+  opacity: 1;
+  color: #ffd2a8;
+}
+
+/* the add-category row is deliberately low-key: no card, small controls */
+.quiet {
+  grid-column: 1 / -1;
+  padding: 0 4px;
+}
+
+.quiet .cat-add button {
+  padding: 3px 12px;
+  font-size: 0.85rem;
+}
+
+.quiet .cat-add input[type='text'] {
+  flex-basis: 140px;
+  padding: 3px 8px;
+  font-size: 0.85rem;
+}
+
+.quiet input[type='color'] {
+  width: 22px;
+  height: 22px;
 }

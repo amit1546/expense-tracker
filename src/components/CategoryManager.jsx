@@ -21,7 +21,7 @@ export default function CategoryManager({ categories, onAdd }) {
   return (
     <div className="cat-manager">
       <form className="cat-add" onSubmit={submit} noValidate>
-        <h2>קטגוריה חדשה</h2>
+        <span className="muted">קטגוריה חדשה</span>
         <input type="color" value={color} onChange={(e) => setColor(e.target.value)} aria-label="צבע לקטגוריה חדשה" />
         <input
           type="text"
@@ -31,7 +31,9 @@ export default function CategoryManager({ categories, onAdd }) {
           onChange={(e) => setName(e.target.value)}
           aria-label="שם קטגוריה חדשה"
         />
-        <button type="submit">הוספה</button>
+        <button type="submit" className="secondary">
+          הוספה
+        </button>
       </form>
       {error && (
         <p className="error" role="alert">

@@ -1,5 +1,6 @@
 import { DEFAULT_CATEGORIES, FALLBACK_ID, lookup, normalizeCategories } from './categories.js';
 import { normalizeBudgets } from './budget.js';
+import { normalizeMeta } from './meta.js';
 
 const KEYS = {
   expenses: 'expense-tracker:v1:expenses',
@@ -7,6 +8,7 @@ const KEYS = {
   budgets: 'expense-tracker:v1:budgets',
   categories: 'expense-tracker:v1:categories',
   meta: 'expense-tracker:v1:meta',
+  dirty: 'expense-tracker:v1:unsynced',
 };
 
 function read(key) {
@@ -48,10 +50,9 @@ export const saveRecurring = (recurring) => write(KEYS.recurring, recurring);
 export const loadBudgets = () => normalizeBudgets(read(KEYS.budgets));
 export const saveBudgets = (budgets) => write(KEYS.budgets, budgets);
 
-// { lastBackup, firstUse, snoozedUntil } as ISO dates; firstUse starts the clock for the first reminder.
-export function loadMeta(today) {
-  const m = read(KEYS.meta) ?? {};
-  const date = (v) => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null);
-  return { lastBackup: date(m.lastBackup), firstUse: date(m.firstUse) ?? today, snoozedUntil: date(m.snoozedUntil) };
-}
+export const loadMeta = (today) => normalizeMeta(read(KEYS.meta), today);
 export const saveMeta = (meta) => write(KEYS.meta, meta);
+
+// True while this device holds changes that have not reached the cloud copy yet.
+export const isDirty = () => read(KEYS.dirty) === true;
+export const setDirty = (value) => write(KEYS.dirty, value);

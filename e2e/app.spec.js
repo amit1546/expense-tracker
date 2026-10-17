@@ -54,7 +54,9 @@ async function addExpense(page, { amount, category, description = '' }) {
 test.describe('layout', () => {
   test('blocks come in the agreed order and nothing explanatory or CSV is left', async ({ page }) => {
     const errors = await open(page, { expenses: [food] });
-    const order = await page.evaluate(() => [...document.querySelectorAll('.app > *')].map((e) => e.className.split(' ')[0]));
+    const order = await page.evaluate(() =>
+      [...document.querySelectorAll('.app > *')].map((e) => e.className.split(' ')[0]),
+    );
     expect(order.slice(0, 5)).toEqual(['app-header', 'card', 'period-bar', 'filters', 'layout']);
     await expect(page.locator('button', { hasText: 'CSV' })).toHaveCount(0);
     await expect(page.locator('.sub, .hint')).toHaveCount(0);
@@ -160,7 +162,13 @@ test.describe('recurring expenses', () => {
 });
 
 test.describe('periods and charts', () => {
-  const data = { expenses: [{ ...fun, id: 'x1', amount: 100 }, { ...fun, id: 'x2', amount: 50, date: `${PREV}-10` }, { ...fun, id: 'x3', amount: 25, date: `${FOUR_AGO}-10` }] };
+  const data = {
+    expenses: [
+      { ...fun, id: 'x1', amount: 100 },
+      { ...fun, id: 'x2', amount: 50, date: `${PREV}-10` },
+      { ...fun, id: 'x3', amount: 25, date: `${FOUR_AGO}-10` },
+    ],
+  };
 
   test('month, 6 months and a year add up and use matching chart titles', async ({ page }) => {
     await open(page, data);
@@ -239,9 +247,14 @@ test.describe('budgets', () => {
 });
 
 test.describe('backup', () => {
-  test('saves a file, restores it after a wipe, undo works, and a wrong file is refused', async ({ page }, testInfo) => {
+  test('saves a file, restores it after a wipe, undo works, and a wrong file is refused', async ({
+    page,
+  }, testInfo) => {
     await open(page, { expenses: [food, bills], recurring: [gym], budgets: { total: 3000, categories: {} } });
-    const [download] = await Promise.all([page.waitForEvent('download'), page.locator('button', { hasText: 'שמירת גיבוי' }).click()]);
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.locator('button', { hasText: 'שמירת גיבוי' }).click(),
+    ]);
     const file = testInfo.outputPath('backup.json');
     await download.saveAs(file);
     const saved = JSON.parse(fs.readFileSync(file, 'utf8'));
@@ -289,7 +302,10 @@ test.describe('weekly backup reminder', () => {
     await open(page, { meta: stale });
     await expect(page.locator('.reminder')).toHaveCount(0);
     const page2 = await page.context().newPage();
-    await open(page2, { expenses: [food], meta: { lastBackup: daysAgo(3), firstUse: daysAgo(60), snoozedUntil: null } });
+    await open(page2, {
+      expenses: [food],
+      meta: { lastBackup: daysAgo(3), firstUse: daysAgo(60), snoozedUntil: null },
+    });
     await expect(page2.locator('.reminder')).toHaveCount(0);
   });
 
@@ -303,7 +319,10 @@ test.describe('weekly backup reminder', () => {
 
   test('backing up from the banner saves a file, hides it and records the date', async ({ page }) => {
     await open(page, { expenses: [food], meta: stale });
-    const [download] = await Promise.all([page.waitForEvent('download'), page.locator('.reminder button', { hasText: 'גיבוי עכשיו' }).click()]);
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.locator('.reminder button', { hasText: 'גיבוי עכשיו' }).click(),
+    ]);
     expect(download).toBeTruthy();
     await expect(page.locator('.reminder')).toHaveCount(0);
     await expect(page.locator('.backup')).toContainText('הגיבוי האחרון');
@@ -374,8 +393,14 @@ test.describe('new category', () => {
       { id: 'c_books', name: 'ספרים', color: '#4e79a7' },
       { id: 'other', name: 'אחר', color: '#7b8794' },
     ];
-    await open(page, { categories, expenses: [{ id: 'k', amount: 55, date: TODAY, category: 'c_books', description: 'רומן' }] });
-    const [download] = await Promise.all([page.waitForEvent('download'), page.locator('button', { hasText: 'שמירת גיבוי' }).click()]);
+    await open(page, {
+      categories,
+      expenses: [{ id: 'k', amount: 55, date: TODAY, category: 'c_books', description: 'רומן' }],
+    });
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.locator('button', { hasText: 'שמירת גיבוי' }).click(),
+    ]);
     const file = testInfo.outputPath('cats-backup.json');
     await download.saveAs(file);
     expect(JSON.parse(fs.readFileSync(file, 'utf8')).categories.map((c) => c.id)).toEqual(['c_books', 'other']);

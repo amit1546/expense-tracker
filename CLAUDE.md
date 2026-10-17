@@ -1,6 +1,7 @@
 # Expense tracker – project notes
 
-Hebrew (RTL) expense tracker. React 18 + Vite + Recharts, data in `localStorage`, no backend.
+Hebrew (RTL) expense tracker. React 18 + Vite + Recharts. Data lives in `localStorage` (a cache) and, inside the claude.ai
+Artifact viewer, also in the artifact's private `db` (the cloud copy). There is no server of our own.
 
 ## Commands
 - `npm run dev` – dev server
@@ -16,8 +17,9 @@ Hebrew (RTL) expense tracker. React 18 + Vite + Recharts, data in `localStorage`
 ## Layout
 - `src/lib/` – pure logic: `summary.js` (periods, recurring expansion, per-month and per-day series), `budget.js`,
   `list.js` (search and sort), `backup.js` (export/import format), `storage.js`, `categories.js`, `format.js`,
-  `files.js` (saving a file), `id.js`. Keep new calculations here, with tests.
+  `files.js` (saving a file), `remote.js` (how data is split into cloud documents), `meta.js`, `id.js`. Keep new calculations here, with tests.
 - `src/hooks/CategoriesContext.js` – components read the category list and `getCategory(id)` from `useCategories()`; pure `src/lib` code takes categories (or a name function) as an argument, never a global.
+- `src/hooks/useCloudSync.js` – keeps the cloud copy in step; returns `'connecting' | 'cloud' | 'local' | 'error'`, shown as a small label in the header.
 - `src/hooks/useExpenses.js` – state for expenses, recurring items and budgets, persisted through `storage.js`. Mutations that
   can be undone return an undo function; the toast shows it as a "ביטול" button.
 - `src/components/` – `ExpenseForm` (top of the page), `PeriodControls` (a segmented control plus month arrows, right under the form), `CategoryFilter`, `Summary` (with `BudgetEditor`), `Charts`, `ListControls` + `ExpenseList`, `CategoryManager` (one small "new category" row), `BackupCard`, `BackupReminder`.
@@ -43,6 +45,7 @@ Hebrew (RTL) expense tracker. React 18 + Vite + Recharts, data in `localStorage`
 - There is no "duplicate expense" button (it was added and removed at the user's request).
 - Weekly backup reminder (`backupReminder`): a banner at the top, shown when there is data and a week has passed since the last backup (or since first use if there never was one). "הזכר לי בעוד שבוע" hides it for 7 days. It can only appear while the app is open; there are no push notifications.
 - Backup is a JSON file named `מעקב הוצאות YYYY-MM-DD.json` (`backup.js`). Restoring replaces everything, after an inline confirmation, and can be undone from the toast. There is no Telegram integration: the user sends the file to themselves.
+- Cloud copy (the fix for "the data disappears when I leave the app on my phone": localStorage is not durable in the iOS viewer): documents under `data/users/<id>/` (private to the viewer, shared by their devices): `meta` (categories, recurring, budgets, app facts) and `ex-YYYY-MM` (one per month, so each stays far below the 256 KiB limit and only changed months are written). Rules, all covered by `e2e/cloud.spec.js` with a fake `db`: nothing is written before the cloud has been read (an empty device can never overwrite it); on opening the cloud wins unless this device has unsynced changes (the `…:unsynced` flag); expenses added while connecting are kept; opening writes nothing; an emptied month's document is deleted; a snapshot that arrives while a save is running is re-read afterwards; an empty snapshot is never treated as a deletion. localStorage stays as the offline cache and fallback. Without `db`/`user` (a normal site, or signed out) the label says the data is on the device only.
 - Palette is navy / steel / teal with an amber highlight, defined as CSS tokens at the top of `src/index.css`
   (light, `prefers-color-scheme: dark`, and `[data-theme='dark']`). Use tokens, not literal colors.
 
@@ -51,8 +54,9 @@ The viewer blocks `window.confirm` and direct file downloads, so:
 - never use `confirm()`; use an inline step or an undo;
 - files are saved through the `downloads` capability (`files.js`; the page is published with `capabilities: {downloads: true}` and the viewer asks the user to confirm). On a regular site `files.js` falls back to a normal download link;
 - there is no CSV export (removed);
-- data lives in that viewer's browser only (no sync between devices).
+- the page is published with `capabilities: {downloads: true, db: {}, user: {}}`; `db` needs `user` so that the private `data/users/<id>/` path can be addressed;
+- localStorage alone is not reliable there, which is why the cloud copy exists.
 
 ## Ideas not done yet
-Automatic sync across devices (the `db` capability would do it), end-of-month forecast, bank CSV import, Apple Pay capture (needs a regular hosted site: iOS Shortcuts "Transaction" automation opening a
+End-of-month forecast, bank CSV import, Apple Pay capture (needs a regular hosted site: iOS Shortcuts "Transaction" automation opening a
 prefilled link; the Artifact page can't receive URL parameters).

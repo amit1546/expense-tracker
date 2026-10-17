@@ -18,6 +18,7 @@ import Charts from './components/Charts.jsx';
 import BackupCard from './components/BackupCard.jsx';
 import BackupReminder from './components/BackupReminder.jsx';
 
+const SYNC_LABELS = { cloud: 'נשמר בענן', local: 'נשמר במכשיר בלבד', error: 'השמירה בענן נכשלה, מנסה שוב' };
 const LIST_TITLES = { 1: 'הוצאות החודש', 6: 'הוצאות ב-6 החודשים', 12: 'הוצאות השנה' };
 
 export default function App() {
@@ -27,6 +28,7 @@ export default function App() {
     recurring,
     budgets,
     meta,
+    syncStatus,
     setBudgets,
     add,
     update,
@@ -162,6 +164,7 @@ export default function App() {
       <div className="app">
         <header className="app-header">
           <h1>מעקב הוצאות</h1>
+          {SYNC_LABELS[syncStatus] && <span className={`sync ${syncStatus}`}>{SYNC_LABELS[syncStatus]}</span>}
         </header>
 
         {reminder && (
@@ -237,7 +240,7 @@ export default function App() {
             />
           </section>
 
-          <section className="card wide">
+          <section className="quiet">
             <CategoryManager categories={categories} onAdd={handleAddCategory} />
           </section>
 
@@ -247,7 +250,7 @@ export default function App() {
               onSave={saveBackup}
               onRestore={(next) => {
                 setEditing(null);
-                          setFilterIds([]);
+                setFilterIds([]);
                 notify('הנתונים שוחזרו מהגיבוי', replaceAll(next));
               }}
             />

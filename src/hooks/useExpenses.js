@@ -13,6 +13,7 @@ import {
 } from '../lib/storage.js';
 import { insertCategory, newCategoryId, removeCategoryFrom } from '../lib/categories.js';
 import { shiftMonth } from '../lib/summary.js';
+import { useCloudSync } from './useCloudSync.js';
 import { todayISO } from '../lib/format.js';
 import { newId } from '../lib/id.js';
 
@@ -29,6 +30,15 @@ export function useExpenses() {
   useEffect(() => saveRecurring(recurring), [recurring]);
   useEffect(() => saveBudgets(budgets), [budgets]);
   useEffect(() => saveMeta(meta), [meta]);
+
+  // keeps a copy in the cloud when this view offers one; `syncStatus` says how that is going
+  const syncStatus = useCloudSync({ categories, expenses, recurring, budgets, meta }, (next) => {
+    setCategories(next.categories);
+    setExpenses(next.expenses);
+    setRecurring(next.recurring);
+    setBudgets(next.budgets);
+    setMeta(next.meta);
+  });
 
   const add = (expense) => {
     const id = newId();
@@ -120,6 +130,7 @@ export function useExpenses() {
     recurring,
     budgets,
     meta,
+    syncStatus,
     setBudgets,
     add,
     update,
