@@ -7,7 +7,7 @@ Artifact viewer, also in the artifact's private `db` (the cloud copy). There is 
 - `npm run dev` – dev server
 - `npm test` – Vitest (pure logic in `src/lib`)
 - `npm run test:e2e` – Playwright against the real production build, in a desktop and a phone-sized dark-mode browser
-  (`e2e/app.spec.js`, 21 scenarios x 2). Run it before publishing any UI change; add a scenario for every bug fixed.
+  (`e2e/app.spec.js` and `e2e/cloud.spec.js`, 45 scenarios x 2). Run it before publishing any UI change; add a scenario for every bug fixed.
   Needs the Chromium that comes with the environment (`PLAYWRIGHT_BROWSERS_PATH`); `webServer` in
   `playwright.config.js` builds and serves the app itself.
 - `npm run build` – production build to `dist/`
@@ -22,7 +22,7 @@ Artifact viewer, also in the artifact's private `db` (the cloud copy). There is 
 - `src/hooks/useCloudSync.js` – keeps the cloud copy in step; returns `'connecting' | 'cloud' | 'local' | 'error'`, shown as a small label in the header.
 - `src/hooks/useExpenses.js` – state for expenses, recurring items and budgets, persisted through `storage.js`. Mutations that
   can be undone return an undo function; the toast shows it as a "ביטול" button.
-- `src/components/` – `ExpenseForm` (top of the page), `PeriodControls` (a segmented control plus month arrows, right under the form), `CategoryFilter`, `Summary` (with `BudgetEditor`), `Charts`, `ListControls` + `ExpenseList`, `CategoryManager` (one small "new category" row), `BackupCard`, `BackupReminder`.
+- `src/components/` – `PageTabs`, `ExpenseForm`, `PeriodControls` (a segmented control plus month arrows, first thing on the overview), `CategoryFilter`, `Summary` (with `BudgetEditor`), `Charts`, `ListControls` + `ExpenseList`, `CategoryManager` (one small "new category" row), `BackupCard`, `BackupReminder`.
 
 ## Data model
 - Expense: `{ id, amount, date: 'YYYY-MM-DD', category, description }`
@@ -32,6 +32,7 @@ Artifact viewer, also in the artifact's private `db` (the cloud copy). There is 
 - App-level state is `{ lastBackup, firstUse, snoozedUntil }` in `…:meta`.
 
 ## Decisions so far
+- Two pages, switched with the tabs under the header (state in `App`, no routing): "הוספת הוצאה" (the form and the small new-category row; this is where the app opens) and "סיכום והוצאות" (backup reminder, period bar, category filter, summary, charts, list, backup card). Editing a list row opens it on the add page and saving or cancelling returns to the overview; a payment link always lands on the add page. Tests start on the overview via `open(page)` and use `showAdd`/`showOverview`; a reload goes back to the add page.
 - Periods are month / 6 months / year, counted back from the selected month; the arrows move a whole period.
 - The category filter is applied to the data before any calculation, so totals, charts and the list always agree.
 - Charts: the donut shows the period total in the middle with a legend. The bar chart is per day for a single month (`dailySeries`) and per month, with a total label above each bar, for 6 months / a year. Only the bar chart has a tooltip (our themed `.tip`); the donut deliberately has none, because on touch it stuck over the ring. Chart internals are forced `direction: ltr` (SVG text anchors flip in RTL).

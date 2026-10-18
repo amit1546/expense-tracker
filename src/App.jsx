@@ -11,6 +11,7 @@ import { formatMoney, formatMonth, todayISO } from './lib/format.js';
 import ExpenseForm from './components/ExpenseForm.jsx';
 import ExpenseList from './components/ExpenseList.jsx';
 import ListControls from './components/ListControls.jsx';
+import PageTabs from './components/PageTabs.jsx';
 import PeriodControls from './components/PeriodControls.jsx';
 import CategoryFilter from './components/CategoryFilter.jsx';
 import CategoryManager from './components/CategoryManager.jsx';
@@ -50,6 +51,7 @@ export default function App() {
   const [filterIds, setFilterIds] = useState([]); // category filter; empty = all categories
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState('date-desc');
+  const [page, setPage] = useState('add'); // 'add' | 'overview'
   const [editing, setEditing] = useState(null);
   const [incoming, setIncoming] = useState(null); // a payment link waiting in the form
   const [waited, setWaited] = useState(false);
@@ -72,6 +74,10 @@ export default function App() {
     return () => clearTimeout(t);
   }, [flashId]);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, [page]);
+
   // A payment link (#pay-<amount>-<shop>) fills the add-expense form. It waits briefly for the cloud copy so the
   // category can be guessed from past expenses, and never saves anything by itself.
   const payLink = useRef(parsePayHash(window.location.hash));
@@ -92,6 +98,7 @@ export default function App() {
     if (!link || (syncStatus === 'connecting' && !waited)) return;
     payLink.current = null;
     setEditing(null);
+    setPage('add');
     setIncoming({
       key: Date.now(),
       amount: link.amount,
@@ -123,12 +130,15 @@ export default function App() {
     setCount(1);
   };
 
-  const toTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
-
   const startEdit = (expense) => {
     setIncoming(null);
     setEditing(expense);
-    toTop();
+    setPage('add');
+  };
+
+  const stopEditing = () => {
+    setEditing(null);
+    setPage('overview');
   };
 
   const saveBackup = async () => {
@@ -159,11 +169,11 @@ export default function App() {
         description,
         day: Number(date.slice(8, 10)),
       });
-      setEditing(null);
+      stopEditing();
       notify(`ההוצאה הקבועה עודכנה מ${formatMonth(from)} והלאה`, undo);
     } else if (editing) {
       update(editing.id, data);
-      setEditing(null);
+      stopEditing();
       setFlashId(editing.id);
       notify('ההוצאה עודכנה ✓');
     } else if (isRecurring) {
@@ -202,97 +212,105 @@ export default function App() {
           {SYNC_LABELS[syncStatus] && <span className={`sync ${syncStatus}`}>{SYNC_LABELS[syncStatus]}</span>}
         </header>
 
-        {reminder && (
-          <BackupReminder
-            status={reminder}
-            onBackup={async () => {
-              if ((await saveBackup()) === 'unavailable') notify('שמירת קבצים לא זמינה כאן');
-            }}
-            onSnooze={() => {
-              snoozeReminder(addDays(today, 7));
-              notify('אזכיר לך בעוד שבוע');
-            }}
-          />
+        <PageTabs page={page} onPage={setPage} />
+
+        {page === 'add' ? (
+          <>
+            <section className="card form-card">
+              <h2>{editing ? (editing.recurring ? 'עריכת הוצאה קבועה' : 'עריכת הוצאה') : 'הוספת הוצאה'}</h2>
+              <ExpenseForm
+                key={editing?.id ?? (incoming ? `pay-${incoming.key}` : 'new')}
+                initial={editing}
+                prefill={incoming}
+                onSubmit={handleSubmit}
+                onCancel={editing ? stopEditing : incoming ? () => setIncoming(null) : undefined}
+              />
+            </section>
+
+            <section className="quiet">
+              <CategoryManager categories={categories} onAdd={handleAddCategory} />
+            </section>
+          </>
+        ) : (
+          <>
+            {reminder && (
+              <BackupReminder
+                status={reminder}
+                onBackup={async () => {
+                  if ((await saveBackup()) === 'unavailable') notify('שמירת קבצים לא זמינה כאן');
+                }}
+                onSnooze={() => {
+                  snoozeReminder(addDays(today, 7));
+                  notify('אזכיר לך בעוד שבוע');
+                }}
+              />
+            )}
+
+            <section className="period-bar">
+              <PeriodControls month={month} count={count} onMonth={setMonth} onCount={setCount} />
+            </section>
+
+            <CategoryFilter selected={filterIds} onToggle={toggleCategory} onClear={() => setFilterIds([])} />
+
+            <main className="layout">
+              <section className="card wide">
+                <Summary
+                  rows={rows}
+                  count={count}
+                  series={series}
+                  prevTotal={prevTotal}
+                  filterNames={filterIds.map((id) => getCategory(id).name)}
+                  onClearFilter={() => setFilterIds([])}
+                  budgets={budgets}
+                  onBudgets={setBudgets}
+                />
+              </section>
+
+              <section className="card wide">
+                <Charts
+                  rows={rows}
+                  trend={trend}
+                  inRange={rangeMonths(month, count)}
+                  count={count}
+                  onPickMonth={pickMonth}
+                  onToggleCategory={toggleCategory}
+                />
+              </section>
+
+              <section className="card wide">
+                <div className="list-header">
+                  <h2>{LIST_TITLES[count]}</h2>
+                  {searching && (
+                    <span className="muted">
+                      {listRows.length} מתוך {rows.length}
+                    </span>
+                  )}
+                </div>
+                <ListControls query={query} sort={sort} onQuery={setQuery} onSort={setSort} />
+                <ExpenseList
+                  expenses={listRows}
+                  highlightId={flashId}
+                  emptyText={searching ? 'לא נמצאו הוצאות שמתאימות לחיפוש.' : 'אין הוצאות בתקופה הזו.'}
+                  onEdit={startEdit}
+                  onDelete={handleDelete}
+                />
+              </section>
+
+              <section className="card wide">
+                <BackupCard
+                  lastBackup={meta.lastBackup}
+                  onSave={saveBackup}
+                  onRestore={(next) => {
+                    setEditing(null);
+                    setIncoming(null);
+                    setFilterIds([]);
+                    notify('הנתונים שוחזרו מהגיבוי', replaceAll(next));
+                  }}
+                />
+              </section>
+            </main>
+          </>
         )}
-
-        <section className="card form-card">
-          <h2>{editing ? (editing.recurring ? 'עריכת הוצאה קבועה' : 'עריכת הוצאה') : 'הוספת הוצאה'}</h2>
-          <ExpenseForm
-            key={editing?.id ?? (incoming ? `pay-${incoming.key}` : 'new')}
-            initial={editing}
-            prefill={incoming}
-            onSubmit={handleSubmit}
-            onCancel={editing ? () => setEditing(null) : incoming ? () => setIncoming(null) : undefined}
-          />
-        </section>
-
-        <section className="period-bar">
-          <PeriodControls month={month} count={count} onMonth={setMonth} onCount={setCount} />
-        </section>
-
-        <CategoryFilter selected={filterIds} onToggle={toggleCategory} onClear={() => setFilterIds([])} />
-
-        <main className="layout">
-          <section className="card wide">
-            <Summary
-              rows={rows}
-              count={count}
-              series={series}
-              prevTotal={prevTotal}
-              filterNames={filterIds.map((id) => getCategory(id).name)}
-              onClearFilter={() => setFilterIds([])}
-              budgets={budgets}
-              onBudgets={setBudgets}
-            />
-          </section>
-
-          <section className="card wide">
-            <Charts
-              rows={rows}
-              trend={trend}
-              inRange={rangeMonths(month, count)}
-              count={count}
-              onPickMonth={pickMonth}
-              onToggleCategory={toggleCategory}
-            />
-          </section>
-
-          <section className="card wide">
-            <div className="list-header">
-              <h2>{LIST_TITLES[count]}</h2>
-              {searching && (
-                <span className="muted">
-                  {listRows.length} מתוך {rows.length}
-                </span>
-              )}
-            </div>
-            <ListControls query={query} sort={sort} onQuery={setQuery} onSort={setSort} />
-            <ExpenseList
-              expenses={listRows}
-              highlightId={flashId}
-              emptyText={searching ? 'לא נמצאו הוצאות שמתאימות לחיפוש.' : 'אין הוצאות בתקופה הזו.'}
-              onEdit={startEdit}
-              onDelete={handleDelete}
-            />
-          </section>
-
-          <section className="quiet">
-            <CategoryManager categories={categories} onAdd={handleAddCategory} />
-          </section>
-
-          <section className="card wide">
-            <BackupCard
-              lastBackup={meta.lastBackup}
-              onSave={saveBackup}
-              onRestore={(next) => {
-                setEditing(null);
-                setIncoming(null);
-                setFilterIds([]);
-                notify('הנתונים שוחזרו מהגיבוי', replaceAll(next));
-              }}
-            />
-          </section>
-        </main>
 
         {toast && (
           <div className="toast" role="status" key={toast.id}>

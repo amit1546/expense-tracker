@@ -1024,3 +1024,14 @@ input[type='color']::-moz-color-swatch {
   width: 22px;
   height: 22px;
 }
+
+.tabs {
+  display: flex;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.tabs button {
+  flex: 1;
+  padding: 9px 14px;
+}

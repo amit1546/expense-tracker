@@ -83,7 +83,10 @@ const cloudDocs = (expenses = []) => ({
 });
 const food = { id: 'a', amount: 120, date: `${CUR}-05`, category: 'food', description: 'סופר' };
 
-async function open(page, { cloud = {}, local = null, dirty = false, noDb = false, failWrites = false } = {}) {
+async function open(
+  page,
+  { cloud = {}, local = null, dirty = false, noDb = false, failWrites = false, overview = true } = {},
+) {
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.addInitScript(installFakeCloud, { seed: cloud, noDb, failWrites });
@@ -97,10 +100,22 @@ async function open(page, { cloud = {}, local = null, dirty = false, noDb = fals
     [local, dirty],
   );
   await page.goto('/');
+  if (overview) await showOverview(page);
   return errors;
 }
 
+const tab = (page, name) => page.locator('.tabs').getByRole('button', { name, exact: true });
+const showOverview = (page) => tab(page, 'סיכום והוצאות').click();
+const showAdd = (page) => tab(page, 'הוספת הוצאה').click();
+
 const form = (page) => page.locator('.form-card');
+async function addExpense(page, amount, description = '') {
+  await showAdd(page);
+  await form(page).locator('input[inputmode=decimal]').fill(amount);
+  if (description) await form(page).locator('input[placeholder^="למשל"]').fill(description);
+  await form(page).locator('button[type=submit]').click();
+  await showOverview(page);
+}
 const rows = (page) => page.locator('tbody tr');
 const wipeLocal = (page) =>
   page.evaluate(() =>
@@ -120,13 +135,12 @@ test.describe('cloud copy', () => {
 
   test('this is the phone bug: local storage emptied between visits, data still there', async ({ page }) => {
     await open(page);
-    await form(page).locator('input[inputmode=decimal]').fill('75');
-    await form(page).locator('input[placeholder^="למשל"]').fill('קפה');
-    await form(page).locator('button[type=submit]').click();
+    await addExpense(page, '75', 'קפה');
     await expect(rows(page)).toHaveCount(1);
     await expect.poll(() => page.evaluate(() => Object.keys(window.__cloud.read()))).toContain(`ex-${CUR}`);
     await wipeLocal(page); // what leaving the app does on the phone
     await page.reload();
+    await showOverview(page);
     await expect(page.locator('tbody tr', { hasText: 'קפה' })).toBeVisible();
   });
 
@@ -170,15 +184,13 @@ test.describe('cloud copy', () => {
   test('without a cloud the app says it only saves on the device and still works', async ({ page }) => {
     await open(page, { noDb: true });
     await expect(page.locator('.sync')).toContainText('במכשיר בלבד');
-    await form(page).locator('input[inputmode=decimal]').fill('5');
-    await form(page).locator('button[type=submit]').click();
+    await addExpense(page, '5');
     await expect(rows(page)).toHaveCount(1);
   });
 
   test('a failing save is reported and the data stays on screen', async ({ page }) => {
     await open(page, { failWrites: true });
-    await form(page).locator('input[inputmode=decimal]').fill('5');
-    await form(page).locator('button[type=submit]').click();
+    await addExpense(page, '5');
     await expect(page.locator('.sync')).toContainText('נכשלה');
     await expect(rows(page)).toHaveCount(1);
   });

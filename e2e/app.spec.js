@@ -21,7 +21,7 @@ const gym = { id: 'r1', amount: 200, category: 'health', description: 'חדר כ
 // Loads the app with data already in localStorage (seeded once, so reloads keep what the test did).
 async function open(
   page,
-  { expenses = [], recurring = [], budgets = null, categories = null, meta = null, path = '/' } = {},
+  { expenses = [], recurring = [], budgets = null, categories = null, meta = null, path = '/', view } = {},
 ) {
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
@@ -38,8 +38,19 @@ async function open(
     [expenses, recurring, budgets, categories, meta],
   );
   await page.goto(path);
+  // the app opens on the add page; most tests want the overview, a payment link and some tests want the add page
+  if ((view ?? (path.includes('#pay-') ? 'add' : 'overview')) === 'overview') await showOverview(page);
   return errors;
 }
+
+const tab = (page, name) => page.locator('.tabs').getByRole('button', { name, exact: true });
+const showOverview = (page) => tab(page, 'סיכום והוצאות').click();
+const showAdd = (page) => tab(page, 'הוספת הוצאה').click();
+// a reload goes back to the add page
+const reload = async (page, view = 'overview') => {
+  await page.reload();
+  if (view === 'overview') await showOverview(page);
+};
 
 const form = (page) => page.locator('.form-card');
 const amountField = (page) => form(page).locator('input[inputmode=decimal]');
@@ -48,6 +59,7 @@ const rowCount = (page) => page.locator('tbody tr').count();
 const num = async (locator) => (await locator.textContent()).replace(/[^\d.]/g, '');
 
 async function addExpense(page, { amount, category, description = '' }) {
+  await showAdd(page);
   await amountField(page).fill(amount);
   if (category) await form(page).locator('select').selectOption(category);
   if (description) await form(page).locator('input[placeholder^="למשל"]').fill(description);
@@ -55,19 +67,31 @@ async function addExpense(page, { amount, category, description = '' }) {
 }
 
 test.describe('layout', () => {
-  test('blocks come in the agreed order and nothing explanatory or CSV is left', async ({ page }) => {
-    const errors = await open(page, { expenses: [food] });
-    const order = await page.evaluate(() =>
-      [...document.querySelectorAll('.app > *')].map((e) => e.className.split(' ')[0]),
-    );
-    expect(order.slice(0, 5)).toEqual(['app-header', 'card', 'period-bar', 'filters', 'layout']);
+  test('two pages, each with its blocks in the agreed order, and nothing explanatory or CSV is left', async ({
+    page,
+  }) => {
+    const errors = await open(page, { expenses: [food], view: 'add' });
+    const order = () =>
+      page.evaluate(() => [...document.querySelectorAll('.app > *')].map((e) => e.className.split(' ')[0]));
+    expect(await order()).toEqual(['app-header', 'seg', 'card', 'quiet']);
+    await showOverview(page);
+    expect(await order()).toEqual(['app-header', 'seg', 'period-bar', 'filters', 'layout']);
     await expect(page.locator('button', { hasText: 'CSV' })).toHaveCount(0);
     await expect(page.locator('.sub, .hint')).toHaveCount(0);
     expect(errors).toEqual([]);
   });
 
+  test('the add page holds the form and nothing from the overview', async ({ page }) => {
+    await open(page, { expenses: [food], view: 'add' });
+    await expect(form(page)).toBeVisible();
+    await expect(page.locator('.summary, .charts, tbody, .backup, .period-bar')).toHaveCount(0);
+    await showOverview(page);
+    await expect(form(page)).toHaveCount(0);
+    await expect(page.locator('.summary')).toBeVisible();
+  });
+
   test('category is a single dropdown', async ({ page }) => {
-    await open(page);
+    await open(page, { view: 'add' });
     await expect(form(page).locator('select option')).toHaveCount(7);
     await expect(page.locator('.cat-btn')).toHaveCount(0);
   });
@@ -79,6 +103,8 @@ test.describe('layout', () => {
       await page.waitForTimeout(300);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     }
+    await showAdd(page);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   });
 });
 
@@ -87,21 +113,24 @@ test.describe('adding', () => {
     await open(page);
     await addExpense(page, { amount: '45', category: 'food', description: 'קפה ומאפה' });
     await expect(page.locator('.toast')).toContainText('נוסף');
-    await expect(rowFor(page, 'קפה ומאפה')).toHaveCount(1);
     await expect(amountField(page)).toBeFocused();
     await expect(amountField(page)).toHaveValue('');
+    await showOverview(page);
+    await expect(rowFor(page, 'קפה ומאפה')).toHaveCount(1);
   });
 
   test('accepts a comma decimal', async ({ page }) => {
     await open(page);
     await addExpense(page, { amount: '12,5', description: 'מונית' });
+    await showOverview(page);
     await expect(rowFor(page, 'מונית').locator('.num')).toContainText('12.50');
   });
 
   test('says what is wrong instead of failing silently', async ({ page }) => {
-    await open(page);
+    await open(page, { view: 'add' });
     await form(page).locator('button[type=submit]').click();
     await expect(page.locator('.form-card .error')).toContainText('סכום');
+    await showOverview(page);
     expect(await rowCount(page)).toBe(0);
   });
 
@@ -111,15 +140,48 @@ test.describe('adding', () => {
     await expect(page.locator('.filter-note')).toBeVisible();
     await addExpense(page, { amount: '300', category: 'bills', description: 'ארנונה' });
     await expect(page.locator('.toast')).toContainText('הסינון אופס');
+    await showOverview(page);
     await expect(page.locator('.filter-note')).toHaveCount(0);
     await expect(rowFor(page, 'ארנונה')).toHaveCount(1);
   });
 
   test('a date in another month jumps to that month', async ({ page }) => {
-    await open(page);
+    await open(page, { view: 'add' });
     await form(page).locator('input[type=date]').fill(`${PREV}-10`);
     await addExpense(page, { amount: '70', description: 'חודש קודם' });
+    await showOverview(page);
     await expect(rowFor(page, 'חודש קודם')).toHaveCount(1);
+  });
+});
+
+test.describe('moving between the two pages', () => {
+  test('the app opens on the add page, and switching pages keeps the tabs in place', async ({ page }) => {
+    await open(page, { expenses: [food], view: 'add' });
+    await expect(tab(page, 'הוספת הוצאה')).toHaveAttribute('aria-pressed', 'true');
+    await showOverview(page);
+    await expect(tab(page, 'סיכום והוצאות')).toHaveAttribute('aria-pressed', 'true');
+    await expect(rowFor(page, 'סופר')).toHaveCount(1);
+  });
+
+  test('editing a row opens it on the add page, saving or cancelling returns to the overview', async ({ page }) => {
+    await open(page, { expenses: [food] });
+    await rowFor(page, 'סופר').locator('button', { hasText: 'עריכה' }).click();
+    await expect(form(page).locator('h2, .form-card h2').first()).toBeVisible();
+    await expect(page.locator('.form-card h2')).toContainText('עריכת הוצאה');
+    await expect(amountField(page)).toHaveValue('1800');
+    await form(page).locator('button', { hasText: 'ביטול' }).click();
+    await expect(page.locator('.summary')).toBeVisible();
+    await rowFor(page, 'סופר').locator('button', { hasText: 'עריכה' }).click();
+    await amountField(page).fill('1900');
+    await form(page).locator('button[type=submit]').click();
+    await expect(page.locator('.summary')).toBeVisible();
+    await expect(rowFor(page, 'סופר').locator('.num')).toContainText('1,900.00');
+  });
+
+  test('a payment link always lands on the add page', async ({ page }) => {
+    await open(page, { expenses: [food], path: '/#pay-30-Cafe' });
+    await expect(tab(page, 'הוספת הוצאה')).toHaveAttribute('aria-pressed', 'true');
+    await expect(amountField(page)).toHaveValue('30');
   });
 });
 
@@ -266,7 +328,7 @@ test.describe('backup', () => {
     expect(saved.budgets.total).toBe(3000);
 
     await page.evaluate(() => localStorage.clear());
-    await page.reload();
+    await reload(page);
     expect(await rowCount(page)).toBe(0);
 
     await page.setInputFiles('input[type=file]', file);
@@ -288,7 +350,7 @@ test.describe('data safety', () => {
   test('data survives a reload', async ({ page }) => {
     await open(page);
     await addExpense(page, { amount: '60', description: 'נשמר' });
-    await page.reload();
+    await reload(page);
     await expect(rowFor(page, 'נשמר')).toHaveCount(1);
   });
 });
@@ -316,7 +378,7 @@ test.describe('weekly backup reminder', () => {
     await open(page, { expenses: [food], meta: stale });
     await page.locator('.reminder button', { hasText: 'בעוד שבוע' }).click();
     await expect(page.locator('.reminder')).toHaveCount(0);
-    await page.reload();
+    await reload(page);
     await expect(page.locator('.reminder')).toHaveCount(0);
   });
 
@@ -329,13 +391,14 @@ test.describe('weekly backup reminder', () => {
     expect(download).toBeTruthy();
     await expect(page.locator('.reminder')).toHaveCount(0);
     await expect(page.locator('.backup')).toContainText('הגיבוי האחרון');
-    await page.reload();
+    await reload(page);
     await expect(page.locator('.reminder')).toHaveCount(0);
   });
 
   test('a first-time user is not nagged on the first day', async ({ page }) => {
     await open(page);
     await addExpense(page, { amount: '10', description: 'ראשון' });
+    await showOverview(page);
     await expect(page.locator('.reminder')).toHaveCount(0);
     await expect(page.locator('.backup')).toContainText('עוד לא בוצע גיבוי');
   });
@@ -349,41 +412,43 @@ test.describe('new category', () => {
   };
 
   test('is a single small row, with no list of existing categories', async ({ page }) => {
-    await open(page);
+    await open(page, { view: 'add' });
     await expect(manager(page).locator('input[type=text]')).toHaveCount(1);
     await expect(page.locator('.cat-row, .cat-list')).toHaveCount(0);
     await expect(page.locator('button', { hasText: 'שכפול' })).toHaveCount(0);
   });
 
   test('shows up in the form, the filter and the budget editor, and the toast confirms it', async ({ page }) => {
-    await open(page);
+    await open(page, { view: 'add' });
     await addCategory(page, 'ספרים');
     await expect(page.locator('.toast')).toContainText('ספרים');
     await expect(form(page).locator('select option', { hasText: 'ספרים' })).toHaveCount(1);
+    await expect(manager(page).locator('input[aria-label="שם קטגוריה חדשה"]')).toHaveValue('');
+    await showOverview(page);
     await expect(page.locator('.filters button', { hasText: 'ספרים' })).toHaveCount(1);
     await page.locator('.summary-head button').click();
     await expect(page.locator('.budget-grid')).toContainText('ספרים');
-    await expect(manager(page).locator('input[aria-label="שם קטגוריה חדשה"]')).toHaveValue('');
   });
 
   test('can be used right away', async ({ page }) => {
-    await open(page);
+    await open(page, { view: 'add' });
     await addCategory(page, 'ספרים');
     const value = await form(page).locator('select option', { hasText: 'ספרים' }).getAttribute('value');
     await addExpense(page, { amount: '80', category: value, description: 'רומן' });
+    await showOverview(page);
     await expect(rowFor(page, 'רומן').locator('.chip')).toContainText('ספרים');
     await expect(page.locator('.category-list')).toContainText('ספרים');
   });
 
   test('undo removes it again', async ({ page }) => {
-    await open(page);
+    await open(page, { view: 'add' });
     await addCategory(page, 'ספרים');
     await page.locator('.toast button').click();
     await expect(form(page).locator('select option')).toHaveCount(7);
   });
 
   test('refuses an empty or duplicate name', async ({ page }) => {
-    await open(page);
+    await open(page, { view: 'add' });
     await manager(page).locator('button[type=submit]').click();
     await expect(manager(page).locator('.error')).toContainText('שם');
     await addCategory(page, 'אוכל');
@@ -408,12 +473,14 @@ test.describe('new category', () => {
     await download.saveAs(file);
     expect(JSON.parse(fs.readFileSync(file, 'utf8')).categories.map((c) => c.id)).toEqual(['c_books', 'other']);
     await page.evaluate(() => localStorage.clear());
-    await page.reload();
+    await reload(page, 'add');
     await expect(form(page).locator('select option')).toHaveCount(7);
+    await showOverview(page);
     await page.setInputFiles('input[type=file]', file);
     await page.locator('.confirm-row button', { hasText: 'שחזור' }).click();
-    await expect(form(page).locator('select option')).toHaveCount(2);
     await expect(rowFor(page, 'רומן').locator('.chip')).toContainText('ספרים');
+    await showAdd(page);
+    await expect(form(page).locator('select option')).toHaveCount(2);
   });
 });
 
@@ -425,6 +492,7 @@ test.describe('payment link (#pay-amount-shop)', () => {
     await expect(amountField(page)).toHaveValue('45.5');
     await expect(descriptionField(page)).toHaveValue('Shufersal City');
     await expect(form(page).locator('input[type=date]')).toHaveValue(TODAY);
+    await showOverview(page);
     expect(await rowCount(page)).toBe(0);
   });
 
@@ -435,14 +503,15 @@ test.describe('payment link (#pay-amount-shop)', () => {
     });
     await expect(form(page).locator('select')).toHaveValue('shopping');
     await form(page).locator('button[type=submit]').click();
-    await expect(rowFor(page, 'Shufersal City')).toHaveCount(1);
     await expect(amountField(page)).toHaveValue('');
+    await showOverview(page);
+    await expect(rowFor(page, 'Shufersal City')).toHaveCount(1);
   });
 
   test('a link that is not a payment is ignored', async ({ page }) => {
     await open(page, { path: '/#pay-abc' });
     await expect(amountField(page)).toHaveValue('');
-    await open(page, { path: '/#something' });
+    await open(page, { path: '/#something', view: 'add' });
     await expect(amountField(page)).toHaveValue('');
   });
 
