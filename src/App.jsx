@@ -226,10 +226,6 @@ export default function App() {
                 onCancel={editing ? stopEditing : incoming ? () => setIncoming(null) : undefined}
               />
             </section>
-
-            <section className="quiet">
-              <CategoryManager categories={categories} onAdd={handleAddCategory} />
-            </section>
           </>
         ) : (
           <>
@@ -294,6 +290,10 @@ export default function App() {
                   onEdit={startEdit}
                   onDelete={handleDelete}
                 />
+              </section>
+
+              <section className="quiet">
+                <CategoryManager categories={categories} onAdd={handleAddCategory} />
               </section>
 
               <section className="card wide">

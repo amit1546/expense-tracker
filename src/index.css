@@ -480,15 +480,23 @@ select {
 }
 
 .form-card {
-  margin-bottom: 16px;
+  max-width: 620px;
+  margin: 0 auto 16px;
+  padding: 24px;
+}
+
+.form-card h2 {
+  margin-bottom: 20px;
+  font-size: 1.3rem;
 }
 
 .form-foot {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  display: grid;
+  gap: 14px;
+}
+
+.form-foot > span:empty {
+  display: none;
 }
 
 .summary-body {
@@ -505,18 +513,6 @@ select {
 @media (max-width: 720px) {
   .summary-body {
     grid-template-columns: 1fr;
-  }
-}
-
-@media (min-width: 721px) {
-  .expense-form {
-    grid-template-columns: 1fr 1fr 1.2fr 2fr;
-    align-items: end;
-  }
-
-  .expense-form > .error,
-  .expense-form > .form-foot {
-    grid-column: 1 / -1;
   }
 }
 
@@ -1034,4 +1030,55 @@ input[type='color']::-moz-color-swatch {
 .tabs button {
   flex: 1;
   padding: 9px 14px;
+}
+
+/* the add page has the whole screen to itself, so its form is big and easy to hit */
+.form-card .expense-form {
+  gap: 20px;
+}
+
+.form-card .expense-form label {
+  gap: 8px;
+  font-size: 1rem;
+}
+
+.form-card .expense-form input[type='text'],
+.form-card .expense-form input[type='date'],
+.form-card .expense-form select {
+  min-height: 54px;
+  padding: 12px 16px;
+  font-size: 1.1rem;
+  border-radius: 12px;
+}
+
+.form-card .expense-form .amount input {
+  min-height: 72px;
+  font-size: 2.2rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.form-card .expense-form label.check {
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0;
+  font-size: 1.05rem;
+}
+
+.form-card .check input {
+  width: 24px;
+  height: 24px;
+  margin: 0;
+}
+
+.form-card .actions {
+  display: grid;
+  gap: 10px;
+}
+
+.form-card .actions button {
+  min-height: 56px;
+  padding: 14px;
+  font-size: 1.15rem;
+  border-radius: 12px;
 }

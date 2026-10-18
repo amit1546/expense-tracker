@@ -41,7 +41,7 @@ export default function ExpenseForm({ initial, prefill, onSubmit, onCancel }) {
 
   return (
     <form className="expense-form" onSubmit={handleSubmit} noValidate>
-      <label>
+      <label className="amount">
         סכום (₪)
         <input
           ref={amountRef}
@@ -54,8 +54,13 @@ export default function ExpenseForm({ initial, prefill, onSubmit, onCancel }) {
         />
       </label>
       <label>
-        תאריך
-        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+        תיאור
+        <input
+          type="text"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="למשל: קניות בסופר"
+        />
       </label>
       <label>
         קטגוריה
@@ -68,13 +73,8 @@ export default function ExpenseForm({ initial, prefill, onSubmit, onCancel }) {
         </select>
       </label>
       <label>
-        תיאור
-        <input
-          type="text"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="למשל: קניות בסופר"
-        />
+        תאריך
+        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
       </label>
       {error && (
         <p className="error" role="alert">
