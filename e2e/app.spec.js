@@ -62,7 +62,7 @@ async function addExpense(page, { amount, category, description = '' }) {
   await showAdd(page);
   await amountField(page).fill(amount);
   if (category) await form(page).locator('select').selectOption(category);
-  if (description) await form(page).locator('input[placeholder^="למשל"]').fill(description);
+  if (description) await form(page).getByLabel('תיאור').fill(description);
   await form(page).locator('button[type=submit]').click();
 }
 
@@ -163,7 +163,7 @@ test.describe('the add form is big', () => {
     expect(labels).toEqual(['סכום (₪)', 'תיאור', 'קטגוריה', 'תאריך']);
     const box = async (loc) => await loc.boundingBox();
     const amount = await box(amountField(page));
-    const desc = await box(form(page).locator('input[placeholder^="למשל"]'));
+    const desc = await box(form(page).getByLabel('תיאור'));
     const submit = await box(form(page).locator('button[type=submit]'));
     expect(amount.height).toBeGreaterThanOrEqual(64);
     expect(desc.height).toBeGreaterThanOrEqual(50);
@@ -507,7 +507,7 @@ test.describe('new category', () => {
 });
 
 test.describe('payment link (#pay-amount-shop)', () => {
-  const descriptionField = (page) => form(page).locator('input[placeholder^="למשל"]');
+  const descriptionField = (page) => form(page).getByLabel('תיאור');
 
   test('fills the form with the amount and the shop, and saves nothing by itself', async ({ page }) => {
     await open(page, { path: '/#pay-45.50-Shufersal_City' });

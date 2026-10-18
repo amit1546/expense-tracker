@@ -55,12 +55,7 @@ export default function ExpenseForm({ initial, prefill, onSubmit, onCancel }) {
       </label>
       <label>
         תיאור
-        <input
-          type="text"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="למשל: קניות בסופר"
-        />
+        <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} />
       </label>
       <label>
         קטגוריה

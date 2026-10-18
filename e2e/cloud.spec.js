@@ -112,7 +112,7 @@ const form = (page) => page.locator('.form-card');
 async function addExpense(page, amount, description = '') {
   await showAdd(page);
   await form(page).locator('input[inputmode=decimal]').fill(amount);
-  if (description) await form(page).locator('input[placeholder^="למשל"]').fill(description);
+  if (description) await form(page).getByLabel('תיאור').fill(description);
   await form(page).locator('button[type=submit]').click();
   await showOverview(page);
 }
